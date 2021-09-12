@@ -1,0 +1,42 @@
+set -e
+
+export files="info filelist"
+
+help() {
+echo "tavinfo - Project Tavorites packages searcher"
+echo "Usage: tavinfo [options] [package]"
+echo "Options"
+echo "--help					Print this message"
+echo "--config=<path to config>			Use a alternative config"
+echo "--type=[info,filelist]			See type of information"
+echo "--SEARCH_DIR=<path>				Change search directory"
+exit
+}
+
+search() {
+[ -z $SEARCH_DIR ] && SEARCH_DIR=$sysroot/var/lib/tavpac/
+if [[ -d $SEARCH_DIR/$x ]]; then
+
+for file in $files; do
+cat $SEARCH_DIR/$x/$file
+done
+
+else
+echo "Package not found"
+fi
+}
+
+source ${PREFIX}/etc/tav.conf
+string="$*"
+[ -z "$string" ] && echo "No package specified! Please use 'tavinfo --help' for more information"
+
+for x in $string; do
+case $x in 
+"--help") help;;
+"--config"=*) 	conf=$(echo "$x" | cut -d "=" -f2); source $conf;;
+"--type"=*) 	files=$(echo "$x" | cut -d "=" -f2 | sed 's/,/ /g');;
+"--SEARCH_DIR"=*) 	SEARCH_DIR=$(echo "$x" | cut -d "=" -f2);;
+--*) 		echo "Invalid option";exit;;
+*) 		search;;
+esac
+done

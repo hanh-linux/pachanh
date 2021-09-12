@@ -1,0 +1,135 @@
+set -e
+
+help() {
+echo "tavinstall - Project Tavorites packages installer"
+echo "Usage: tavinstall [options] [action] package"
+echo "Action"
+echo "--sync					Sync database from remote"
+echo "--search					Search for packages"
+echo "--install					Install package <file>"
+echo "--remove					Remove package"
+echo "Options"
+echo "--help					Print this message"
+echo "--config=<path to config>			Use a alternative config"
+echo "--sysroot=<path>				Change root directory"
+echo "--downloader=<command>			Use command to install"
+exit
+}
+
+sync_data(){
+dbdir="$sysroot/var/lib/remote/"
+cd $dbdir
+
+for ser in $server; do
+eval $($downloader $ser)
+if [ -f "pt-packages.zip" ]; then
+unzip pt-packages.zip
+break
+fi
+done
+
+}
+
+install_pkg() {
+[ ! -f "$package" ] && echo "Package not found!" && exit
+
+for pkg in $package; do
+TEMP=$(mktemp -d)
+tar -C $TEMP -xf $pkg var/lib/pactav/system/
+
+newfile=$(find $TEMP/var/lib/pactav/system/*/filelist)
+depends=$(cat $newfile | grep Depends | sed 's/Depends: //g')
+
+if [ ! -z "$depends" ]; then
+
+for dep in $depends; do
+if [ ! -d $sysroot/var/lib/pactav/system/$dep ]; then
+echo "$dep not found! Please compile and install it..."
+exit
+fi
+done
+
+fi
+
+oldfile=$(echo "$newfile" | sed 's+$TEMP+$sysroot+g')
+
+if [ -f "$oldfile" ]; then
+
+difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/<//g')
+for files in $(echo $difffiles); do 
+rm -rf $files
+done
+
+fi
+
+tar -C $sysroot -xf $pkg
+rm -rf $TEMP
+
+done
+
+}
+
+remove_pkg() {
+for pkg_dir in $package; do
+echo $package
+
+installed_pkg_infodir=$installed_infodir/$pkg_dir
+installed_pkg_filelist=$installed_pkg_infodir/filelist
+
+if [ ! -f "$installed_pkg_filelist" ]; then 
+echo "Package not found"
+exit
+fi
+
+exclude_file="$sysroot/etc/tav-exclude"
+
+if [ ! -f "$exclude_file" ]; then
+echo "$exclude_file file not found"
+exit
+fi 
+
+for listfile in $(echo $(cat $installed_pkg_filelist)); do
+rm -rf $listfile
+done
+
+done
+}
+
+
+source ${PREFIX}/etc/tav.conf
+
+command="$*"
+[ -z "$command" ] && help && exit
+
+for x in $command; do
+
+case $x in
+"--help") help; exit;;
+"--config"=*) 		config=$(echo "$x" | cut -d "=" -f 2);;
+"--sysroot"=*) 		sysroot=$(echo "$x" | cut -d "=" -f 2);;
+"--downloader"=*) 	downloader=$(echo "$x" | cut -d "=" -f 2);;
+"--sync")		sync=1;;
+"--search")		search=1;;
+"--install")		install=1;;
+"--remove")		remove=1;;
+"--"*)			echo "Invalid option"; help;exit;;
+*)			package=$x;;	
+esac
+
+done
+
+[ -z "$sysroot" ] && sysroot="/"
+
+installed_infodir="$sysroot/var/lib/pactav/system/"
+
+if [ "$sync" == 1 ]; then
+sync_data
+fi
+
+if [ "$install" == 1 ]; then
+install_pkg
+fi
+
+if [ "$remove" == 1 ]; then
+remove_pkg
+fi
