@@ -1,5 +1,8 @@
+#!/bin/bash
+
 set -e
 
+# Help function
 help() {
 echo "tavbuild - Project Tavorites packages builder"
 echo "Usage: tavbuild [options]"
@@ -14,48 +17,62 @@ echo "--repack					Make a package using current work directory"
 exit
 }
 
+# Function for package archive
 archive_pkg(){
-pkg_tarball="$name"-"$ver".tavbuild.tar.gz
 
-echo "Generating information..."
+## Get some useful variables
+ pkg_tarball="$name"-"$ver".tavbuild.tar.gz
+ infodir="$pkgdir/var/lib/pactav/system"
+ info_pkgdir="$info_dir/$name"
+ info_file=$info_pkgdir/info
+ info_filelist=$info_pkgdir/filelist
+ header=$pkgdir/pre-install
 
-info_pkgdir="$info_dir/$name"
-info_file=$info_pkgdir/info
-info_filelist=$info_pkgdir/filelist
+## Generate package infomation
+ echo "Generating information..."
 
-mkdir -p $info_pkgdir
-echo "Name: $name" >> $info_file
-echo "Version: $ver" >> $info_file
-echo "Description: $desc" >> $info_file
-echo "Depends: " $depend >> $info_file
-echo "Homepage: $home" >> $info_file
+ mkdir -p $info_pkgdir
+ echo "Name: $name" >> $info_file
+ echo "Version: $ver" >> $info_file
+ echo "Description: $desc" >> $info_file
+ echo "Depends: " $depend >> $info_file
+ echo "Homepage: $home" >> $info_file
 
-echo "Generating filelist..."
-cd $pkgdir
-find * | tee $info_filelist
-remove_files="bin sbin lib lib64 usr usr/lib usr/lib64 usr/bin usr/sbin usr/share boot dev etc home mnt opt proc root run tmp var"
-for x in $remove_files; do
-sed 's/\<$x\>//g' -i $info_filelist
-done
+## Generate the filelist before generating the header. The header will not be included to the filelist and will be removed after the package is installed.
+ echo "Generating filelist..."
 
-echo "Compressing package..."
-tar -cJvf $tavdir/$pkg_tarball *
+ cd $pkgdir
+ find * | tee $info_filelist
 
-echo "Package created!" $pkg_tarball 
+## Generate the header 
+ echo "name=$name" >> $header
+ echo "version=$ver" >> $header
+ echo "desc=$desc" >> $header
+ echo depends=\"$depend\" >> $header
+ echo "pkg_infodir=/var/lib/pactav/system/$name" >> $header 
+
+## Compress the package 
+ echo "Compressing package..."
+ tar -cJvf $tavdir/$pkg_tarball *
+
+ echo "Create package:" $pkg_tarball 
 }
+
+# Export some necessary variables
 no_unpack=0
 repack=0
 
-source ${PREFIX}/etc/tavbuild.conf
-
+# Get the command line 
 command="$*"
+
+# Parse the command line
 for x in $command; do
 
 case $x in
 "--help") help; exit;;
-"--config"=*) config=$(echo "$x" | cut -d "=" -f 2) && source $config;;
+"--config"=*) config=$(echo "$x" | cut -d "=" -f 2);;
 "--buildfile"=*) buildfile=$(echo "$x" | cut -d "=" -f 2);;
-"--downloader"=*) downloader=$(echo "$x" | cut -d "=" -f 2); echo $downloader;;
+"--downloader"=*) override_downloader=$(echo "$x" | cut -d "=" -f 2);;
 "--clean") clean=1;;
 "--no-unpack") no_unpack=1;;
 "--repack")  repack=1;;
@@ -65,23 +82,31 @@ esac
 
 done
 
+# Source the configuration file
+[ ! -z "$config" ] && [ ! -f "$config" ] && echo "Configuration file not found!" && exit
+[ -z "$config" ] && config=$sysroot/etc/tavbuild.conf
+source $config
+
+# Check if the download command is available.
+[ ! -z "$override_downloader" ] && downloader="$override_downloader"
+[ -z "$downloader" ] && echo "Download command not found" && exit
+
+# Check if the build file exists then source the build file
 [ -z $buildfile ] && buildfile=buildtav
+
 if [ ! -f $buildfile ]; then
-echo "Build file not found!"
-exit
+ echo "Build file not found!"
+ exit
 fi
 
 source $buildfile
 
-pkg_command=$(cat "$buildfile" | grep make-pkg | sed 's+()++g' | sed 's+{++g')
-export grep_unpack=$(cat $buildfile | grep unpack-pkg | cut -d "(" -f 1)
-export grep_compile=$(cat $buildfile | grep compile-pkg | cut -d "(" -f 1)
+# Check for available functions
+grep_unpack=$(cat $buildfile | grep unpack-pkg | cut -d "(" -f 1)
+grep_compile=$(cat $buildfile | grep compile-pkg | cut -d "(" -f 1)
+grep_pkg=$(cat $buildfile | grep make-pkg | cut -d "(" -f 1)
 
-if [ -z "$downloader" ]; then
-echo "Download command not found!"
-exit
-fi
-
+# Execute the functions above with options
 if [ "$clean" == 1 ]; then
 no_unpack=0
 rm -rf $pkgdir $workdir
@@ -89,43 +114,32 @@ fi
 
 mkdir -p $pkgdir $workdir
 
-echo $workdir
 if [ ! -z "$source" ]; then
-
-for need_file in $source; do
-
-wget -N $need_file
-
-done
-
+ for need_file in $source; do
+  eval $downloader $need_file
+ done
 fi
 
 
 if [ -z "$grep_unpack" ]; then
-
-no_unpack=1
-
+ no_unpack=1
 fi 
 
 
 if [ -z "$grep_compile" ]; then
-
-repack=1
-
+ repack=1
 fi
-echo $no_unpack $repack
+
 if [ "$no_unpack" == 0 ]; then
-unpack-pkg
+ unpack-pkg
 fi
 
 if [ "$repack" == 0 ]; then
-compile-pkg
+ compile-pkg
 fi
 
 for repack_command in $(echo $pkg_command); do
-
-rm -rf $pkgdir && mkdir $pkgdir
-eval $repack_command
-archive_pkg
-
+ rm -rf $pkgdir && mkdir -p $pkgdir
+ eval $repack_command
+ archive_pkg
 done

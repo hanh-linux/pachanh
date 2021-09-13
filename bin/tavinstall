@@ -1,5 +1,8 @@
+#!/bin/bash
+
 set -e
 
+## Function for printing help
 help() {
 echo "tavinstall - Project Tavorites packages installer"
 echo "Usage: tavinstall [options] [action] package"
@@ -12,102 +15,111 @@ echo "Options"
 echo "--help					Print this message"
 echo "--config=<path to config>			Use a alternative config"
 echo "--sysroot=<path>				Change root directory"
-echo "--downloader=<command>			Use command to install"
+echo "--downloader=<command>			Use another download command"
+echo "--mirror-file=<path>                      Use specified mirror file"
+echo "For any questions, please consider to go to the GitHub repository: https://github.com/hanhlinux/pactav"
 exit
 }
 
+# Function for downloading database
 sync_data(){
+## Get some variable
 dbdir="$sysroot/var/lib/remote/"
-cd $dbdir
+all_server=$(echo $(cat $mirror_file))
 
-for ser in $server; do
-eval $($downloader $ser)
-if [ -f "pt-packages.zip" ]; then
-unzip pt-packages.zip
-break
-fi
+## Download the build files from remote server
+cd $dbdir
+for server in all_server
+do
+ eval $downloader $server/package-data.tar.gz
+
+### Check if the database archive is available
+ if [ -f package-data.tar.gz ]; then
+  tar -xf package-data.tar.gz
+  exit
+ fi
+
 done
 
 }
 
-install_pkg() {
-[ ! -f "$package" ] && echo "Package not found!" && exit
-
+# Function for installing package.
+install_pkg() { 
 for pkg in $package; do
-TEMP=$(mktemp -d)
-tar -C $TEMP -xf $pkg var/lib/pactav/system/
+### Check if the package exists
+[ ! -f "$pkg" ] && echo "Package tarball not found!" && exit
 
-newfile=$(find $TEMP/var/lib/pactav/system/*/filelist)
-depends=$(cat $newfile | grep Depends | sed 's/Depends: //g')
+### If the package is available, unpack the pre-install file for checking dependencies and filtering old files. 
 
-if [ ! -z "$depends" ]; then
+ TEMP=$(mktemp -d)
+ tar -C $TEMP -xf $pkg /pre-install
+ source $TEMP/pre-install
 
-for dep in $depends; do
-if [ ! -d $sysroot/var/lib/pactav/system/$dep ]; then
-echo "$dep not found! Please compile and install it..."
-exit
-fi
-done
+### Check for dependencies
+ if [ ! -z "$depends" ]; then
+  for dep in $depends; do
+   if [ ! -d $installed_infodir/$dep ]; then
+   echo "$dep not found! Please compile and install it..."
+   exit
+   fi
+  done
+ fi
 
-fi
+### Get package info directory
+ tar -C $TEMP -xf $pkg $infodir
 
-oldfile=$(echo "$newfile" | sed 's+$TEMP+$sysroot+g')
+### Filter the old files
+ oldfile=$sysroot/$infodir/filelist
+ newfile=$TEMP/$infodir/filelist 
 
-if [ -f "$oldfile" ]; then
+ if [ -f "$oldfile" ]; then
+  difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/<//g')
+  
+  for files in $(echo $difffiles); do 
+   rm -rf $files
+  done
 
-difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/<//g')
-for files in $(echo $difffiles); do 
-rm -rf $files
-done
+ fi
 
-fi
-
-tar -C $sysroot -xf $pkg
-rm -rf $TEMP
-
+### Unpack the package to $sysroot
+ tar -C $sysroot -xf $pkg
+ rm -rf $sysroot/pre-install $TEMP
 done
 
 }
 
 remove_pkg() {
 for pkg_dir in $package; do
-echo $package
 
-installed_pkg_infodir=$installed_infodir/$pkg_dir
-installed_pkg_filelist=$installed_pkg_infodir/filelist
+ installed_pkg_filelist=$installed_infodir/$pkg_dir/filelist
 
-if [ ! -f "$installed_pkg_filelist" ]; then 
-echo "Package not found"
-exit
-fi
+### Check if the package is installed on the system
+ if [ ! -f "$installed_pkg_filelist" ]; then 
+  echo "Filelist not found!"
+  exit
+ fi
 
-exclude_file="$sysroot/etc/tav-exclude"
-
-if [ ! -f "$exclude_file" ]; then
-echo "$exclude_file file not found"
-exit
-fi 
-
-for listfile in $(echo $(cat $installed_pkg_filelist)); do
-rm -rf $listfile
-done
+### Remove files (folders will be ignored because it may delete the necessary folders)
+ for listfile in $(echo $(cat $installed_pkg_filelist)); do
+  rm -f $listfile
+ done
 
 done
 }
 
-
-source ${PREFIX}/etc/tav.conf
-
+# Get the executed command. If the command comes with no more option, print the help.
 command="$*"
 [ -z "$command" ] && help && exit
 
+# Parse the command line.
 for x in $command; do
 
 case $x in
 "--help") help; exit;;
 "--config"=*) 		config=$(echo "$x" | cut -d "=" -f 2);;
 "--sysroot"=*) 		sysroot=$(echo "$x" | cut -d "=" -f 2);;
-"--downloader"=*) 	downloader=$(echo "$x" | cut -d "=" -f 2);;
+"--downloader"=*) 	override_downloader=$(echo "$x" | cut -d "=" -f 2);;
+"--mirror-file"=*)      mirror_file=$(echo "$x" | cut -d "=" -f 2);;
 "--sync")		sync=1;;
 "--search")		search=1;;
 "--install")		install=1;;
@@ -118,18 +130,30 @@ esac
 
 done
 
-[ -z "$sysroot" ] && sysroot="/"
+# Check for some variables
+[ ! -z "$config"] && [ ! -f "$config" ] && echo "Configuration file not found!" && exit
+[ -z "$config" ] && config="/etc/tav.conf"
+source $config
 
+[ ! -z "$override_downloader" ] && downloader="$override_downloader"
+[ -z "$downloader" ] && echo "Download command not found" && exit
+
+[ ! -z "$mirror_file" ] && [ ! -f "$mirror_file" ] && echo "Mirror file not found" && exit
+[ -z "$mirror_file" ] && mirror_file="/etc/tavmirror"
+
+[ -z "$sysroot" ] && sysroot="/"
 installed_infodir="$sysroot/var/lib/pactav/system/"
 
+# Execute the functions above
 if [ "$sync" == 1 ]; then
-sync_data
+ sync_data
 fi
 
 if [ "$install" == 1 ]; then
-install_pkg
+ remove=0
+ install_pkg
 fi
 
 if [ "$remove" == 1 ]; then
-remove_pkg
+ remove_pkg
 fi
