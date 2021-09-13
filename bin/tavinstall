@@ -17,7 +17,7 @@ echo "--config=<path to config>			Use a alternative config"
 echo "--sysroot=<path>				Change root directory"
 echo "--downloader=<command>			Use another download command"
 echo "--mirror-file=<path>                      Use specified mirror file"
-echo "For any questions, please consider to go to the GitHub repository: https://github.com/hanhlinux/pactav"
+echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pactav"
 exit
 }
 

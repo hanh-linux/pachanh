@@ -14,6 +14,7 @@ echo "--downloader=<command>			Use command to install"
 echo "--clean					Clean all current work and package directory"
 echo "--no-unpack				Use current work directory"
 echo "--repack					Make a package using current work directory"
+echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pactav"
 exit
 }
 
