@@ -36,7 +36,7 @@ archive_pkg(){
  echo "Name: $name" >> $info_file
  echo "Version: $ver" >> $info_file
  echo "Description: $desc" >> $info_file
- echo "Depends: " $depend >> $info_file
+ echo "Depends: " $depends >> $info_file
  echo "Homepage: $home" >> $info_file
 
 ## Generate the filelist before generating the header. The header will not be included to the filelist and will be removed after the package is installed.
