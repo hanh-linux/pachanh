@@ -75,6 +75,7 @@ done
 skel_gen(){
 printf "\r>> Generating buildfile..."
 tar -C $dir_skel -xf $dbdir/package-data.tar.gz
+rm -rf repo-update.sh README.md example.md date 
 }
 
 # Function for installing package.
@@ -220,4 +221,4 @@ if [ "$remove" == 1 ]; then
  remove_pkg
 fi
 
-echo
+printf "\n"
