@@ -2,38 +2,66 @@
 
 set -e
 
+## Function for cleaning line
+clean_line(){
+printf "\r                                                        "
+}
 ## Function for printing help
 help() {
+echo ">> Printing help"
 echo "tavinstall - Project Tavorites packages installer"
 echo "Usage: tavinstall [options] [action] package"
 echo "Action"
-echo "--sync					Sync database from remote"
-echo "--search					Search for packages"
-echo "--install					Install package <file>"
-echo "--remove					Remove package"
+echo "--sync                                    Sync database from remote"
+echo "--search                                  Search for packages"
+echo "--install                                 Install packages <file>"
+echo "--remove                                  Remove packages"
 echo "Options"
-echo "--help					Print this message"
-echo "--config=<path to config>			Use a alternative config"
-echo "--sysroot=<path>				Change root directory"
-echo "--downloader=<command>			Use another download command"
+echo "--help                                    Print this message"
+echo "--config=<path to config>                 Use a alternative config"
+echo "--sysroot=<path>                          Change root directory"
+echo "--downloader=<command>                    Use another download command"
 echo "--mirror-file=<path>                      Use specified mirror file"
+echo "--disable-depends                         Disable dependencies check"
+echo "--gen-skel=<path>                         Generate the packages build files"
 echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pactav"
 exit
 }
 
+# Function for checking dependencies
+depends_check(){
+printf "\r>> Checking dependencies..."
+ if [ ! -z "$depends" ]; then
+  for dep in $depends; do
+   if [ ! -d $installed_infodir/$dep ]; then
+   printf "\n>>> $dep not found! Please compile and install it..."
+   exit
+   fi
+  done
+ fi
+}
+
 # Function for downloading database
 sync_data(){
-## Get some variable
-dbdir="$sysroot/var/lib/remote/"
-all_server=$(echo $(cat $mirror_file))
+## Get some variables
+all_server=$(cat $mirror_file)
 
-## Download the build files from remote server
+## Create the database directory if it doesn't exist
+[ ! -d "$dbdir" ] && mkdir -p $dbdir
 cd $dbdir
-for server in all_server
+## Clear old database
+printf "\r>> Cleaning old database..."
+rm -rf *
+## Download the database for the server
+clean_line
+printf "\r>> Downloading database from server..."
+for server in $all_server
 do
  eval $downloader $server/package-data.tar.gz
 
 ### Check if the database archive is available
+ clean_line
+ printf "\r>> Unpacking database..."
  if [ -f package-data.tar.gz ]; then
   tar -xf package-data.tar.gz
   exit
@@ -43,29 +71,34 @@ done
 
 }
 
+# Function for generating build file
+skel_gen(){
+printf "\r>> Generating buildfile..."
+tar -C $dir_skel -xf $dbdir/package-data.tar.gz
+}
+
 # Function for installing package.
 install_pkg() { 
 for pkg in $package; do
 ### Check if the package exists
-[ ! -f "$pkg" ] && echo "Package tarball not found!" && exit
+ [ ! -f "$pkg" ] && echo ">>> Package tarball not found!" && exit
 
 ### If the package is available, unpack the pre-install file for checking dependencies and filtering old files. 
 
+ printf "\r>> Unpacking package header..."
  TEMP=$(mktemp -d)
- tar -C $TEMP -xf $pkg /pre-install
+ tar -C $TEMP -xf $pkg pre-install
  source $TEMP/pre-install
 
-### Check for dependencies
- if [ ! -z "$depends" ]; then
-  for dep in $depends; do
-   if [ ! -d $installed_infodir/$dep ]; then
-   echo "$dep not found! Please compile and install it..."
-   exit
-   fi
-  done
- fi
+### Disable dependencies check if the --disable-depends option is enabled
+
+if [ "$check_deps" == 1 ]; then
+ depends_check
+fi
 
 ### Get package info directory
+ clean_line
+ printf "\r>> Getting infomation directory..." 
  tar -C $TEMP -xf $pkg $infodir
 
 ### Filter the old files
@@ -73,6 +106,8 @@ for pkg in $package; do
  newfile=$TEMP/$infodir/filelist 
 
  if [ -f "$oldfile" ]; then
+  clean_line
+  printf "\r>> Filtering old files..."
   difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/<//g')
   
   for files in $(echo $difffiles); do 
@@ -82,6 +117,8 @@ for pkg in $package; do
  fi
 
 ### Unpack the package to $sysroot
+ clean_line
+ printf "\r>> Installing $name..."
  tar -C $sysroot -xf $pkg
  rm -rf $sysroot/pre-install $TEMP
 done
@@ -91,21 +128,29 @@ done
 remove_pkg() {
 for pkg_dir in $package; do
 
+## Get some variables
+ installed_pkg_infodir=$installed_infodir/$pkg_dir
  installed_pkg_filelist=$installed_infodir/$pkg_dir/filelist
 
 ### Check if the package is installed on the system
+printf "\r>> Checking if the packages is installed..."
  if [ ! -f "$installed_pkg_filelist" ]; then 
-  echo "Filelist not found!"
+   printf "\n>>> Filelist not found! Exiting..."
   exit
  fi
 
 ### Remove files (folders will be ignored because it may delete the necessary folders)
- for listfile in $(echo $(cat $installed_pkg_filelist)); do
-  rm -f $listfile
- done
+ clean_line
+ printf "\r>> Removing $pkg_dir..."
+ cd $sysroot
+ rm -f $(cat $installed_pkg_filelist)
+ rm -rf $installed_pkg_infodir
 
 done
 }
+
+# Get some variables
+check_deps=1
 
 # Get the executed command. If the command comes with no more option, print the help.
 command="$*"
@@ -117,43 +162,62 @@ for x in $command; do
 case $x in
 "--help") help; exit;;
 "--config"=*) 		config=$(echo "$x" | cut -d "=" -f 2);;
-"--sysroot"=*) 		sysroot=$(echo "$x" | cut -d "=" -f 2);;
+"--sysroot"=*) 		override_sysroot=$(echo "$x" | cut -d "=" -f 2);;
 "--downloader"=*) 	override_downloader=$(echo "$x" | cut -d "=" -f 2);;
 "--mirror-file"=*)      mirror_file=$(echo "$x" | cut -d "=" -f 2);;
+"--disable-depends")    check_deps=0;;
+"--gen-skel"=*)         gen_skel=1;dir_skel=$(echo "$x" | cut -d "=" -f 2);;
 "--sync")		sync=1;;
 "--search")		search=1;;
 "--install")		install=1;;
 "--remove")		remove=1;;
-"--"*)			echo "Invalid option"; help;exit;;
-*)			package=$x;;	
+"--"*)			echo ">>> Unknown options: $x. Ignoring...";;
+*)			package="$package $x";;	
 esac
 
 done
 
 # Check for some variables
-[ ! -z "$config"] && [ ! -f "$config" ] && echo "Configuration file not found!" && exit
+
+[ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit
 [ -z "$config" ] && config="/etc/tav.conf"
 source $config
 
 [ ! -z "$override_downloader" ] && downloader="$override_downloader"
-[ -z "$downloader" ] && echo "Download command not found" && exit
+[ -z "$downloader" ] && echo ">>> Download command not found" && exit
 
-[ ! -z "$mirror_file" ] && [ ! -f "$mirror_file" ] && echo "Mirror file not found" && exit
+[ ! -z "$mirror_file" ] && [ ! -f "$mirror_file" ] && echo ">>> Mirror file not found" && exit
 [ -z "$mirror_file" ] && mirror_file="/etc/tavmirror"
 
+if [ ! -z "$override_sysroot" ]; then
+ [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found! Exiting..." && exit
+ sysroot=$override_sysroot
+fi	
 [ -z "$sysroot" ] && sysroot="/"
+
 installed_infodir="$sysroot/var/lib/pactav/system/"
+dbdir="$sysroot/var/lib/pactav/remote"
+
+
+[ "$install" == 1 ] && [ "$remove" == 1 ] && echo ">>> --install option cannot be used with --remove option. Exiting.." && exit
+
+[ "$gen_skel" == 1 ] && [ ! -z "$dir_skel" ] && [ ! -d "$dir_skel" ] && echo ">>> Directory not found!"
 
 # Execute the functions above
 if [ "$sync" == 1 ]; then
  sync_data
 fi
 
+if [ "$gen_skel" == 1 ]; then
+skel_gen 
+fi
+
 if [ "$install" == 1 ]; then
- remove=0
  install_pkg
 fi
 
 if [ "$remove" == 1 ]; then
  remove_pkg
 fi
+
+echo

@@ -7,15 +7,27 @@ help() {
 echo "tavbuild - Project Tavorites packages builder"
 echo "Usage: tavbuild [options]"
 echo "Options"
-echo "--help					Print this message"
-echo "--config=<path to config>			Use a alternative config"
-echo "--buildfile=<path to buildfile>		Use a alternative build file"
-echo "--downloader=<command>			Use command to install"
-echo "--clean					Clean all current work and package directory"
-echo "--no-unpack				Use current work directory"
-echo "--repack					Make a package using current work directory"
+echo "--help                                    Print this message"
+echo "--config=<path to config>                 Use a alternative config"
+echo "--buildfile=<path to buildfile>           Use a alternative build file"
+echo "--downloader=<command>                    Use command to install"
+echo "--clean                                   Clean all current work and package directory"
+echo "--no-unpack                               Use current work directory"
+echo "--repack                                  Make a package using current work directory"
 echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pactav"
 exit
+}
+
+# Function for dependencies checking
+depends_check() {
+if [ ! -z "$depends" ]; then
+ for dep in $depends; do
+  if [ ! -d $sysroot/var/lib/pactav/$dep ]; then
+   echo "$dep not found! Please install and compile it"
+   exit
+  fi
+ done
+fi
 }
 
 # Function for package archive
@@ -23,7 +35,7 @@ archive_pkg(){
 
 ## Get some useful variables
  pkg_tarball="$name"-"$ver".tavbuild.tar.gz
- infodir="$pkgdir/var/lib/pactav/system"
+ info_dir="$pkgdir/var/lib/pactav/system"
  info_pkgdir="$info_dir/$name"
  info_file=$info_pkgdir/info
  info_filelist=$info_pkgdir/filelist
@@ -49,7 +61,7 @@ archive_pkg(){
  echo "name=$name" >> $header
  echo "version=$ver" >> $header
  echo "desc=$desc" >> $header
- echo depends=\"$depend\" >> $header
+ echo depends=\"$depends\" >> $header
  echo "pkg_infodir=/var/lib/pactav/system/$name" >> $header 
 
 ## Compress the package 
@@ -59,9 +71,20 @@ archive_pkg(){
  echo "Create package:" $pkg_tarball 
 }
 
+# Function for downloading source
+download_source(){
+ if [ ! -z "$sources" ]; then
+  for need_file in $sources; do
+   eval $downloader $need_file
+  done
+ fi
+}
+
 # Export some necessary variables
 no_unpack=0
 repack=0
+download=1
+check_deps=1
 
 # Get the command line 
 command="$*"
@@ -73,12 +96,12 @@ case $x in
 "--help") help; exit;;
 "--config"=*) config=$(echo "$x" | cut -d "=" -f 2);;
 "--buildfile"=*) buildfile=$(echo "$x" | cut -d "=" -f 2);;
+"--no-download") download=0;;
+"--disable-depends") check_deps=0;;
 "--downloader"=*) override_downloader=$(echo "$x" | cut -d "=" -f 2);;
 "--clean") clean=1;;
 "--no-unpack") no_unpack=1;;
-"--repack")  repack=1;;
-"--"*) echo "Invalid option";exit;;
-*) 
+"--repack")  repack=1;; 
 esac
 
 done
@@ -102,12 +125,18 @@ fi
 
 source $buildfile
 
+# By default, check for dependencies. If --disable-depends is enabled, skip this step. 
+if [ "$check_deps" == 1 ]; then 
+depends_check
+fi
+
 # Check for available functions
 grep_unpack=$(cat $buildfile | grep unpack-pkg | cut -d "(" -f 1)
 grep_compile=$(cat $buildfile | grep compile-pkg | cut -d "(" -f 1)
 grep_pkg=$(cat $buildfile | grep make-pkg | cut -d "(" -f 1)
 
 # Execute the functions above with options
+
 if [ "$clean" == 1 ]; then
 no_unpack=0
 rm -rf $pkgdir $workdir
@@ -115,12 +144,9 @@ fi
 
 mkdir -p $pkgdir $workdir
 
-if [ ! -z "$source" ]; then
- for need_file in $source; do
-  eval $downloader $need_file
- done
+if [ "$download" == 1 ]; then
+download_source
 fi
-
 
 if [ -z "$grep_unpack" ]; then
  no_unpack=1
@@ -139,7 +165,7 @@ if [ "$repack" == 0 ]; then
  compile-pkg
 fi
 
-for repack_command in $(echo $pkg_command); do
+for repack_command in  $grep_pkg; do
  rm -rf $pkgdir && mkdir -p $pkgdir
  eval $repack_command
  archive_pkg

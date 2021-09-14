@@ -1,42 +1,67 @@
+#!/bin/bash
+
 set -e
 
-export files="info filelist"
-
+# Function for printing help
 help() {
-echo "tavinfo - Project Tavorites packages searcher"
+echo "tavinfo - Project Tavorites installed packages search tool"
 echo "Usage: tavinfo [options] [package]"
 echo "Options"
 echo "--help					Print this message"
 echo "--config=<path to config>			Use a alternative config"
 echo "--type=[info,filelist]			See type of information"
-echo "--SEARCH_DIR=<path>				Change search directory"
+echo "--sysroot=<path>				Change root directory"
+echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pactav"
 exit
 }
 
+# Function for searching packages
 search() {
-[ -z $SEARCH_DIR ] && SEARCH_DIR=$sysroot/var/lib/tavpac/
-if [[ -d $SEARCH_DIR/$x ]]; then
-
-for file in $files; do
-cat $SEARCH_DIR/$x/$file
+for pkg in $package; do
+### Check if the package is installed
+ if [[ -d $infodir/$pkg ]]; then
+### Check if the specified information file exists
+  for file in $files; do
+   [ ! -f $infodir/$pkg/$file ] && echo "Specified file not found! Exiting..." && exit
+   cat $infodir/$pkg/$file
+  done
+ else
+  echo "Package not found! Exiting.."
+  exit
+ fi
 done
-
-else
-echo "Package not found"
-fi
 }
 
-source ${PREFIX}/etc/tav.conf
-string="$*"
-[ -z "$string" ] && echo "No package specified! Please use 'tavinfo --help' for more information"
+# Get the command line
+command="$*"
+[ -z "$command" ] && echo "No package specified! Please use 'tavinfo --help' for more information"
 
-for x in $string; do
+# Parse the command line
+for x in $command; do
+
 case $x in 
 "--help") help;;
-"--config"=*) 	conf=$(echo "$x" | cut -d "=" -f2); source $conf;;
+"--config"=*) 	config=$(echo "$x" | cut -d "=" -f2); source $config;;
 "--type"=*) 	files=$(echo "$x" | cut -d "=" -f2 | sed 's/,/ /g');;
-"--SEARCH_DIR"=*) 	SEARCH_DIR=$(echo "$x" | cut -d "=" -f2);;
---*) 		echo "Invalid option";exit;;
-*) 		search;;
+"--sysroot"=*) 	override_sysroot=$(echo "$x" | cut -d "=" -f2);;
+--*) 		echo "Unknown option: $x. Ignoring...";;
+*) 		package="$package $x";;
 esac
+
 done
+
+# Get some variables
+[ ! -z "$config" ] && [ ! -f "$config" ] && echo "Configuration file not found!" && exit
+[ -z "$config" ] && config="$sysroot/etc/tav.conf"
+source $config
+
+if [ ! -z "$override_sysroot" ]; then 
+ [ ! -d "$override_sysroot" ] && echo "$override_sysroot not found!" && exit
+ sysroot=$override_sysroot
+fi
+[ -z "$sysroot" ] && sysroot="/"
+
+infodir="$sysroot/var/lib/system/"
+
+# Run the functions above
+search
