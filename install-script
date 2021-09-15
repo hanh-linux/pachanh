@@ -1,0 +1,65 @@
+clean_line(){
+printf "\r                                                                                            "
+}
+
+
+command="$*"
+eval $command
+
+echo "<< pactav install script"
+echo ">> Summary"
+echo "Destdir=$DESTDIR"
+echo "Prefix=$PREFIX"
+echo "System root=$SYSROOT"
+echo "Uninstall=$UNINSTALL"
+echo -ne "\n"
+
+
+echo ">> Checking requirements..."
+needed_command="rm printf exit echo source case for if tee find tar xz mkdir eval cat [ diff sh"
+recommended_command="wget bash"
+
+printf "\n"
+for x in $needed_command; do
+clean_line
+printf "\r>> Checking if necessary command $x is found... "
+sleep 0.5s
+if ! command -v $x &> /dev/null; then
+ printf "not found"
+ printf "\n>>> Command $x is not found! Aborting...\n"
+ exit 1
+else
+ printf "found"
+fi
+sleep 0.5s
+done
+printf "\n>> Done."
+
+printf "\n"
+for x in $recommended_command; do
+clean_line
+printf "\r>> Checking if recommended command $x is found... "
+sleep 0.5s
+if ! command -v $x &> /dev/null; then
+printf "not found"
+printf "\n>> Command $x is recommended to be installed on your system"
+else
+printf "found"
+fi
+sleep 0.5s
+done
+printf "\n>> Done"
+printf "\n>> Installing pactav... \n"
+
+cp -r src/{bin,etc} .
+
+sed "s|PREFIX|$PREFIX|g" -i bin/tavinfo bin/tavinstall bin/tavbuild
+sed "s|SYSROOT|$SYSROOT|g" -i bin/tavinfo bin/tavinstall
+
+install -Dvm755 bin/tavinstall $DESTDIR/$PREFIX/bin/tavinstall
+install -Dvm755 bin/tavbuild $DESTDIR/$PREFIX/bin/tavbuild
+install -Dvm755 bin/tavinfo $DESTDIR/$PREFIX/bin/tavinfo
+
+install -Dvm644 etc/tav.conf $DESTDIR/etc/tav.conf
+install -Dvm644 etc/tavbuild.conf $DESTDIR/etc/tavbuild.conf
+install -Dvm644 etc/tavmirror $DESTDIR/etc/tavmirror

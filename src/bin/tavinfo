@@ -22,11 +22,12 @@ for pkg in $package; do
  if [[ -d $infodir/$pkg ]]; then
 ### Check if the specified information file exists
   for file in $files; do
-   [ ! -f $infodir/$pkg/$file ] && echo "Specified file not found! Exiting..." && exit
+   [ ! -f $infodir/$pkg/$file ] && echo ">>> Specified file not found! Exiting..." && exit
+   echo ">> Printing $file..."
    cat $infodir/$pkg/$file
   done
  else
-  echo "Package not found! Exiting.."
+  echo ">>> Package not found! Exiting..."
   exit
  fi
 done
@@ -34,7 +35,7 @@ done
 
 # Get the command line
 command="$*"
-[ -z "$command" ] && echo "No package specified! Please use 'tavinfo --help' for more information"
+[ -z "$command" ] && echo ">>> No package specified! Please use 'tavinfo --help' for more information" && exit
 
 # Parse the command line
 for x in $command; do
@@ -44,24 +45,25 @@ case $x in
 "--config"=*) 	config=$(echo "$x" | cut -d "=" -f2); source $config;;
 "--type"=*) 	files=$(echo "$x" | cut -d "=" -f2 | sed 's/,/ /g');;
 "--sysroot"=*) 	override_sysroot=$(echo "$x" | cut -d "=" -f2);;
---*) 		echo "Unknown option: $x. Ignoring...";;
+--*) 		echo ">>> Unknown option: $x. Ignoring...";;
 *) 		package="$package $x";;
 esac
 
 done
 
 # Get some variables
-[ ! -z "$config" ] && [ ! -f "$config" ] && echo "Configuration file not found!" && exit
-[ -z "$config" ] && config="$sysroot/etc/tav.conf"
+[ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit 1
+[ -z "$config" ] && config="PREFIX/etc/tav.conf"
 source $config
 
 if [ ! -z "$override_sysroot" ]; then 
- [ ! -d "$override_sysroot" ] && echo "$override_sysroot not found!" && exit
+ [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found!" && exit 1
  sysroot=$override_sysroot
 fi
-[ -z "$sysroot" ] && sysroot="/"
+[ -z "$sysroot" ] && sysroot="SYSROOT/"
 
-infodir="$sysroot/var/lib/system/"
+infodir="$sysroot/var/lib/pactav/system/"
+[ -z "$files" ] && files="info filelist"
 
 # Run the functions above
 search

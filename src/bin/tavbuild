@@ -22,14 +22,15 @@ exit
 clean_line(){
 printf "\r                                                 "
 }
+
 # Function for dependencies checking
 depends_check() {
 printf "\r>> Checking dependencies.."
 if [ ! -z "$depends" ]; then
  for dep in $depends; do
   if [ ! -d $sysroot/var/lib/pactav/$dep ]; then
-   printf "\n>>> $dep not found! Please install and compile it"
-   exit
+   printf "\n>>> $dep not found! Please install and compile it\n"
+   exit 1
   fi
  done
 fi
@@ -37,6 +38,8 @@ fi
 
 # Function for package archive
 archive_pkg(){
+
+echo ">> Finishing package..."
 
 ## Get some useful variables
  pkg_tarball="$name"-"$ver".tavbuild.tar.gz
@@ -47,7 +50,8 @@ archive_pkg(){
  header=$pkgdir/pre-install
 
 ## Generate package infomation
- printf "\n>> Generating information..."
+ printf "\n"
+ printf ">> (0%%)__ Generating information..."
 
  mkdir -p $info_pkgdir
  echo "Name: $name" >> $info_file
@@ -58,14 +62,14 @@ archive_pkg(){
 
 ## Generate the filelist before generating the header. The header will not be included to the filelist and will be removed after the package is installed.
  clean_line
- printf "\r>> Generating filelist..."
+ printf "\r>> (10%%)_ Generating filelist..."
 
  cd $pkgdir
- find * | tee $info_filelist
+ find * | tee $info_filelist > /dev/null 2>&1
 
 ## Generate the header
  clean_line
- printf "\r>> Generating headers..."
+ printf "\r>> (20%%)_ Generating headers..."
  echo "name=$name" >> $header
  echo "version=$ver" >> $header
  echo "desc=$desc" >> $header
@@ -74,11 +78,11 @@ archive_pkg(){
 
 ## Compress the package 
  clean_line
- printf "\r>> Compressing package..."
- tar -cJvf $tavdir/$pkg_tarball *
+ printf "\r>> (30%%)_ Compressing package..."
+ tar -cJf $tavdir/$pkg_tarball *
  
  clean_line
- printf "\r>> Package created: $pkg_tarball" 
+ printf "\r>> (100%%) Package created: $pkg_tarball" 
 }
 
 # Function for downloading source
@@ -98,6 +102,7 @@ repack=0
 download=1
 check_deps=1
 
+printf "\n<< Executing command...\n"
 # Get the command line 
 command="$*"
 
@@ -119,20 +124,20 @@ esac
 done
 
 # Source the configuration file
-[ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit
-[ -z "$config" ] && config=$sysroot/etc/tavbuild.conf
+[ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit 1
+[ -z "$config" ] && config=PREFIX/etc/tavbuild.conf
 source $config
 
 # Check if the download command is available.
 [ ! -z "$override_downloader" ] && downloader="$override_downloader"
-[ -z "$downloader" ] && echo ">>> Download command not found" && exit
+[ -z "$downloader" ] && echo ">>> Download command not found" && exit 1
 
 # Check if the build file exists then source the build file
 [ -z $buildfile ] && buildfile=buildtav
 
 if [ ! -f $buildfile ]; then
  echo ">>> Build file not found!"
- exit
+ exit 1
 fi
 
 source $buildfile
@@ -158,18 +163,12 @@ fi
 echo ">> Creating necessary directories if needed..."
 mkdir -p $pkgdir $workdir
 
-if [ "$download" == 1 ]; then
-download_source
-fi
+[ "$download" == 1 ] && download_source
 
-if [ -z "$grep_unpack" ]; then
- no_unpack=1
-fi 
+[ -z "$grep_unpack" ] && no_unpack=1 
 
 
-if [ -z "$grep_compile" ]; then
- repack=1
-fi
+[ -z "$grep_compile" ] && repack=1
 
 if [ "$no_unpack" == 0 ]; then
  clean_line
@@ -190,4 +189,4 @@ for repack_command in  $grep_pkg; do
  archive_pkg
 done
 
-printf "\n"
+printf "\n>> Process executed suscessfully! "

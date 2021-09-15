@@ -6,6 +6,7 @@ set -e
 clean_line(){
 printf "\r                                                        "
 }
+
 ## Function for printing help
 help() {
 echo ">> Printing help"
@@ -25,17 +26,15 @@ echo "--mirror-file=<path>                      Use specified mirror file"
 echo "--disable-depends                         Disable dependencies check"
 echo "--gen-skel=<path>                         Generate the packages build files"
 echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pactav"
-exit
 }
 
 # Function for checking dependencies
 depends_check(){
-printf "\r>> Checking dependencies..."
  if [ ! -z "$depends" ]; then
   for dep in $depends; do
    if [ ! -d $installed_infodir/$dep ]; then
-   printf "\n>>> $dep not found! Please compile and install it..."
-   exit
+   echo -ne "\n>>> $dep not found! Please compile and install it...\n"
+   exit 1
    fi
   done
  fi
@@ -50,20 +49,21 @@ all_server=$(cat $mirror_file)
 [ ! -d "$dbdir" ] && mkdir -p $dbdir
 cd $dbdir
 ## Clear old database
-printf "\r>> Cleaning old database..."
+printf "\n>> (0%%)__ Cleaning old database..."
 rm -rf *
 ## Download the database for the server
 clean_line
-printf "\r>> Downloading database from server..."
+printf "\r>> (20%%)_ Downloading database from server..."
 for server in $all_server
 do
- eval $downloader $server/package-data.tar.gz
+ eval $downloader $server/package-data.tar.gz > /dev/null
 
 ### Check if the database archive is available
- clean_line
- printf "\r>> Unpacking database..."
  if [ -f package-data.tar.gz ]; then
+  clean_line
+  printf "\r>> (80%%)_ Unpacking database..."
   tar -xf package-data.tar.gz
+  printf "\r>> (100%%)"
   exit
  fi
 
@@ -71,35 +71,41 @@ done
 
 }
 
-# Function for generating build file
+# Function for generating build files
 skel_gen(){
-printf "\r>> Generating buildfile..."
-tar -C $dir_skel -xf $dbdir/package-data.tar.gz
+printf "\n>> (0%%)__ Generating build files..."
+cd $dir_skel
+tar -xf $dbdir/package-data.tar.gz
+clean_line
+printf "\r>> (50%%)_ Cleaning up..."
 rm -rf repo-update.sh README.md example.md date 
+printf "\r>> (100%%)"
 }
 
 # Function for installing package.
 install_pkg() { 
 for pkg in $package; do
 ### Check if the package exists
- [ ! -f "$pkg" ] && echo ">>> Package tarball not found!" && exit
+ [ ! -f "$pkg" ] && printf "\n>>> Package tarball not found!\n" && exit 1
 
 ### If the package is available, unpack the pre-install file for checking dependencies and filtering old files. 
 
- printf "\r>> Unpacking package header..."
+ printf "\n>> (0%%)__ Unpacking package header..."
  TEMP=$(mktemp -d)
  tar -C $TEMP -xf $pkg pre-install
  source $TEMP/pre-install
 
 ### Disable dependencies check if the --disable-depends option is enabled
 
-if [ "$check_deps" == 1 ]; then
- depends_check
-fi
+ if [ "$check_deps" == 1 ]; then
+  clean_line
+  printf "\r>> (5%%)__ Checking dependencies..."
+  depends_check
+ fi
 
 ### Get package info directory
  clean_line
- printf "\r>> Getting infomation directory..." 
+ printf "\r>> (10%%)_ Getting infomation directory..." 
  tar -C $TEMP -xf $pkg $infodir
 
 ### Filter the old files
@@ -108,7 +114,7 @@ fi
 
  if [ -f "$oldfile" ]; then
   clean_line
-  printf "\r>> Filtering old files..."
+  printf "\r>> (20%%)_ Filtering old files..."
   difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/<//g')
   
   for files in $(echo $difffiles); do 
@@ -119,10 +125,13 @@ fi
 
 ### Unpack the package to $sysroot
  clean_line
- printf "\r>> Installing $name..."
+ printf "\r>> (30%%)_ Installing $name..."
  tar -C $sysroot -xf $pkg
  rm -rf $sysroot/pre-install $TEMP
+ printf "\r>> (100%%)"
+
 done
+
 
 }
 
@@ -134,22 +143,24 @@ for pkg_dir in $package; do
  installed_pkg_filelist=$installed_infodir/$pkg_dir/filelist
 
 ### Check if the package is installed on the system
-printf "\r>> Checking if the packages is installed..."
+printf "\n>> (0%%)__ Checking if the packages is installed..."
  if [ ! -f "$installed_pkg_filelist" ]; then 
-   printf "\n>>> Filelist not found! Exiting..."
-  exit
+   echo -ne "\n>>> Filelist not found! Exiting...\n"
+   exit 1
  fi
 
 ### Remove files (folders will be ignored because it may delete the necessary folders)
  clean_line
- printf "\r>> Removing $pkg_dir..."
+ printf "\r>> (10%%)_ Removing $pkg_dir..."
  cd $sysroot
- rm -f $(cat $installed_pkg_filelist)
+ rm -f $(cat $installed_pkg_filelist) > /dev/null 2>&1 || true
  rm -rf $installed_pkg_infodir
+ printf "\r>> (100%%)"
 
 done
 }
 
+printf "<< Executing command... \n"
 # Get some variables
 check_deps=1
 
@@ -180,45 +191,40 @@ done
 
 # Check for some variables
 
-[ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit
-[ -z "$config" ] && config="/etc/tav.conf"
+[ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found! Exiting..." && exit 1
+[ -z "$config" ] && config="PREFIX/etc/tav.conf"
 source $config
 
 [ ! -z "$override_downloader" ] && downloader="$override_downloader"
-[ -z "$downloader" ] && echo ">>> Download command not found" && exit
+[ -z "$downloader" ] && echo ">>> Download command not found! Exiting..." && exit 127
 
-[ ! -z "$mirror_file" ] && [ ! -f "$mirror_file" ] && echo ">>> Mirror file not found" && exit
-[ -z "$mirror_file" ] && mirror_file="/etc/tavmirror"
+[ ! -z "$mirror_file" ] && [ ! -f "$mirror_file" ] && echo ">>> Mirror file not found! Exiting..." && exit 1
+[ -z "$mirror_file" ] && mirror_file="PREFIX/etc/tavmirror"
 
 if [ ! -z "$override_sysroot" ]; then
- [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found! Exiting..." && exit
+ [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found! Exiting..." && exit 1
  sysroot=$override_sysroot
 fi	
-[ -z "$sysroot" ] && sysroot="/"
+[ -z "$sysroot" ] && sysroot="SYSROOT/"
 
 installed_infodir="$sysroot/var/lib/pactav/system/"
+[ ! -d "$installed_infodir" ] && echo ">>> System packages information directory not found! Exiting..." && exit 1
+
 dbdir="$sysroot/var/lib/pactav/remote"
+[ ! -d "$dbdir" ] && echo ">>> Database directory not found! Exiting..." && exit 1
 
 
-[ "$install" == 1 ] && [ "$remove" == 1 ] && echo ">>> --install option cannot be used with --remove option. Exiting.." && exit
+[ "$install" == 1 ] && [ "$remove" == 1 ] && echo ">>> --install option cannot be used with --remove option. Exiting..." && exit
 
-[ "$gen_skel" == 1 ] && [ ! -z "$dir_skel" ] && [ ! -d "$dir_skel" ] && echo ">>> Directory not found!"
+[ "$gen_skel" == 1 ] && [ ! -z "$dir_skel" ] && [ ! -d "$dir_skel" ] && echo ">>> Skeleton directory not found! Exiting..." && exit 1
 
 # Execute the functions above
-if [ "$sync" == 1 ]; then
- sync_data
-fi
+[ "$sync" == 1 ] && sync_data
 
-if [ "$gen_skel" == 1 ]; then
-skel_gen 
-fi
+[ "$gen_skel" == 1 ] && skel_gen 
 
-if [ "$install" == 1 ]; then
- install_pkg
-fi
+[ "$install" == 1 ] && install_pkg
 
-if [ "$remove" == 1 ]; then
- remove_pkg
-fi
+[ "$remove" == 1 ] && remove_pkg
 
-printf "\n"
+printf "\n>> Process executed successfully. \n"
