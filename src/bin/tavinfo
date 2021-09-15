@@ -1,6 +1,15 @@
 #!/bin/bash
 
 set -e
+set -o errtrace
+
+trap func_exit EXIT
+
+# Exit function
+func_exit() {
+printf "\n"
+}
+
 
 # Function for printing help
 help() {
@@ -53,7 +62,7 @@ done
 
 # Get some variables
 [ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit 1
-[ -z "$config" ] && config="PREFIX/etc/tav.conf"
+[ -z "$config" ] && config="CONFDIR/etc/tav.conf"
 source $config
 
 if [ ! -z "$override_sysroot" ]; then 

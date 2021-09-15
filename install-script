@@ -2,16 +2,26 @@ clean_line(){
 printf "\r                                                                                            "
 }
 
+help() {
+echo "Available options:"
+echo "DESTDIR               Install to directory"
+echo "PREFIX                Install to prefix"
+echo "CONFDIR               Useful for finding configuration file"
+echo "SYSROOT               Useful for define installed root directory"
+echo "HELP                  Print this message"
+}
 
 command="$*"
 eval $command
+
+[ "$HELP" == 1 ] && help && exit
 
 echo "<< pactav install script"
 echo ">> Summary"
 echo "Destdir=$DESTDIR"
 echo "Prefix=$PREFIX"
 echo "System root=$SYSROOT"
-echo "Uninstall=$UNINSTALL"
+echo "Configuration directory=$CONFDIR"
 echo -ne "\n"
 
 
@@ -53,7 +63,7 @@ printf "\n>> Installing pactav... \n"
 
 cp -r src/{bin,etc} .
 
-sed "s|PREFIX|$PREFIX|g" -i bin/tavinfo bin/tavinstall bin/tavbuild
+sed "s|CONFDIR|$CONFDIR|g" -i bin/tavinfo bin/tavinstall bin/tavbuild
 sed "s|SYSROOT|$SYSROOT|g" -i bin/tavinfo bin/tavinstall
 
 install -Dvm755 bin/tavinstall $DESTDIR/$PREFIX/bin/tavinstall

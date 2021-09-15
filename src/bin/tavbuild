@@ -1,6 +1,14 @@
 #!/bin/bash
 
 set -e
+set -o errtrace
+
+trap func_exit EXIT
+
+# Exit function
+func_exit() {
+printf "\n"
+}
 
 # Help function
 help() {
@@ -125,7 +133,7 @@ done
 
 # Source the configuration file
 [ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit 1
-[ -z "$config" ] && config=PREFIX/etc/tavbuild.conf
+[ -z "$config" ] && config="CONFDIR/etc/tavbuild.conf"
 source $config
 
 # Check if the download command is available.

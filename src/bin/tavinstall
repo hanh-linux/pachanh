@@ -1,6 +1,14 @@
 #!/bin/bash
 
 set -e
+set -o errtrace
+
+trap func_exit EXIT
+
+# Exit function
+func_exit() {
+printf "\n"
+}
 
 ## Function for cleaning line
 clean_line(){
@@ -192,14 +200,14 @@ done
 # Check for some variables
 
 [ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found! Exiting..." && exit 1
-[ -z "$config" ] && config="PREFIX/etc/tav.conf"
+[ -z "$config" ] && config="CONFDIR/etc/tav.conf"
 source $config
 
 [ ! -z "$override_downloader" ] && downloader="$override_downloader"
 [ -z "$downloader" ] && echo ">>> Download command not found! Exiting..." && exit 127
 
 [ ! -z "$mirror_file" ] && [ ! -f "$mirror_file" ] && echo ">>> Mirror file not found! Exiting..." && exit 1
-[ -z "$mirror_file" ] && mirror_file="PREFIX/etc/tavmirror"
+[ -z "$mirror_file" ] && mirror_file="CONFDIR/etc/tavmirror"
 
 if [ ! -z "$override_sysroot" ]; then
  [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found! Exiting..." && exit 1
