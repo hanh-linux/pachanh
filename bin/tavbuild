@@ -1,0 +1,200 @@
+#!/bin/bash
+
+set -e
+set -o errtrace
+
+trap func_exit EXIT
+
+# Exit function
+func_exit() {
+printf "\n"
+}
+
+# Help function
+help() {
+echo "tavbuild - Project Tavorites packages builder"
+echo "Usage: tavbuild [options]"
+echo "Options"
+echo "--help                                    Print this message"
+echo "--config=<path to config>                 Use a alternative config"
+echo "--buildfile=<path to buildfile>           Use a alternative build file"
+echo "--downloader=<command>                    Use command to install"
+echo "--clean                                   Clean all current work and package directory"
+echo "--no-unpack                               Use current work directory"
+echo "--repack                                  Make a package using current work directory"
+echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pactav"
+exit
+}
+
+# Function for cleaning line
+clean_line(){
+printf "\r                                                 "
+}
+
+# Function for dependencies checking
+depends_check() {
+printf "\r>> Checking dependencies.."
+if [ ! -z "$depends" ]; then
+ for dep in $depends; do
+  if [ ! -d $sysroot/var/lib/pactav/$dep ]; then
+   printf "\n>>> $dep not found! Please install and compile it\n"
+   exit 1
+  fi
+ done
+fi
+}
+
+# Function for package archive
+archive_pkg(){
+
+echo ">> Finishing package..."
+
+## Get some useful variables
+ pkg_tarball="$name"-"$ver".tavbuild.tar.gz
+ info_dir="$pkgdir/var/lib/pactav/system"
+ info_pkgdir="$info_dir/$name"
+ info_file=$info_pkgdir/info
+ info_filelist=$info_pkgdir/filelist
+ header=$pkgdir/pre-install
+
+## Generate package infomation
+ printf "\n"
+ printf ">> (0%%)__ Generating information..."
+
+ mkdir -p $info_pkgdir
+ echo "Name: $name" >> $info_file
+ echo "Version: $ver" >> $info_file
+ echo "Description: $desc" >> $info_file
+ echo "Depends: " $depends >> $info_file
+ echo "Homepage: $home" >> $info_file
+
+## Generate the filelist before generating the header. The header will not be included to the filelist and will be removed after the package is installed.
+ clean_line
+ printf "\r>> (10%%)_ Generating filelist..."
+
+ cd $pkgdir
+ find * | tee $info_filelist > /dev/null 2>&1
+
+## Generate the header
+ clean_line
+ printf "\r>> (20%%)_ Generating headers..."
+ echo "name=$name" >> $header
+ echo "version=$ver" >> $header
+ echo "desc=$desc" >> $header
+ echo depends=\"$depends\" >> $header
+ echo "pkg_infodir=/var/lib/pactav/system/$name" >> $header 
+
+## Compress the package 
+ clean_line
+ printf "\r>> (30%%)_ Compressing package..."
+ tar -cJf $tavdir/$pkg_tarball *
+ 
+ clean_line
+ printf "\r>> (100%%) Package created: $pkg_tarball" 
+}
+
+# Function for downloading source
+download_source(){
+ if [ ! -z "$sources" ]; then
+ clean_line
+ echo ">> Sources detected! Downloading..."
+  for need_file in $sources; do
+   eval $downloader $need_file
+  done
+ fi
+}
+
+# Export some necessary variables
+no_unpack=0
+repack=0
+download=1
+check_deps=1
+
+printf "\n<< Executing command...\n"
+# Get the command line 
+command="$*"
+
+# Parse the command line
+for x in $command; do
+
+case $x in
+"--help") help; exit;;
+"--config"=*) config=$(echo "$x" | cut -d "=" -f 2);;
+"--buildfile"=*) buildfile=$(echo "$x" | cut -d "=" -f 2);;
+"--no-download") download=0;;
+"--disable-depends") check_deps=0;;
+"--downloader"=*) override_downloader=$(echo "$x" | cut -d "=" -f 2);;
+"--clean") clean=1;;
+"--no-unpack") no_unpack=1;;
+"--repack")  no_unpack=1;repack=1;; 
+esac
+
+done
+
+# Source the configuration file
+[ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit 1
+[ -z "$config" ] && config="/home/user/test//etc/tavbuild.conf"
+source $config
+
+# Check if the download command is available.
+[ ! -z "$override_downloader" ] && downloader="$override_downloader"
+[ -z "$downloader" ] && echo ">>> Download command not found" && exit 1
+
+# Check if the build file exists then source the build file
+[ -z $buildfile ] && buildfile=buildtav
+
+if [ ! -f $buildfile ]; then
+ echo ">>> Build file not found!"
+ exit 1
+fi
+
+source $buildfile
+
+# By default, check for dependencies. If --disable-depends is enabled, skip this step. 
+if [ "$check_deps" == 1 ]; then 
+depends_check
+fi
+
+# Check for available functions
+grep_unpack=$(cat $buildfile | grep unpack-pkg | cut -d "(" -f 1)
+grep_compile=$(cat $buildfile | grep compile-pkg | cut -d "(" -f 1)
+grep_pkg=$(cat $buildfile | grep make-pkg | cut -d "(" -f 1)
+
+# Execute the functions above with options
+
+if [ "$clean" == 1 ]; then
+echo ">> Cleaning necessary directories..."
+no_unpack=0
+rm -rf $pkgdir $workdir
+fi
+
+echo ">> Creating necessary directories if needed..."
+mkdir -p $pkgdir $workdir
+
+[ "$download" == 1 ] && download_source
+
+[ -z "$grep_unpack" ] && no_unpack=1 
+
+
+[ -z "$grep_compile" ] && repack=1
+
+if [ "$no_unpack" == 0 ]; then
+ clean_line
+ echo ">> Unpacking sources..."
+ unpack-pkg
+fi
+
+if [ "$repack" == 0 ]; then
+ echo ">> Compiling sources..."
+ compile-pkg
+fi
+
+for repack_command in  $grep_pkg; do
+ rm -rf $pkgdir && mkdir -p $pkgdir
+ clean_line
+ echo ">> Making package: $name..."
+ eval $repack_command
+ archive_pkg
+done
+
+printf "\n>> Process executed suscessfully! "

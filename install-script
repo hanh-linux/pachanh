@@ -73,3 +73,5 @@ install -Dvm755 bin/tavinfo $DESTDIR/$PREFIX/bin/tavinfo
 install -Dvm644 etc/tav.conf $DESTDIR/etc/tav.conf
 install -Dvm644 etc/tavbuild.conf $DESTDIR/etc/tavbuild.conf
 install -Dvm644 etc/tavmirror $DESTDIR/etc/tavmirror
+
+install -dm755 $DESTDIR/$PREFIX/var/lib/pactav/{remote,system}
