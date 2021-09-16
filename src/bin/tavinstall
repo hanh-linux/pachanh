@@ -117,8 +117,8 @@ for pkg in $package; do
  tar -C $TEMP -xf $pkg $infodir
 
 ### Filter the old files
- oldfile=$sysroot/$infodir/filelist
- newfile=$TEMP/$infodir/filelist 
+ oldfile=$sysroot/$pkg_infodir/filelist
+ newfile=$TEMP/$pkg_infodir/filelist 
 
  if [ -f "$oldfile" ]; then
   clean_line
@@ -126,7 +126,7 @@ for pkg in $package; do
   difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/<//g')
   
   for files in $(echo $difffiles); do 
-   rm -rf $files
+   rm -rvf $files
   done
 
  fi
@@ -139,8 +139,6 @@ for pkg in $package; do
  printf "\r>> (100%%)"
 
 done
-
-
 }
 
 remove_pkg() {
