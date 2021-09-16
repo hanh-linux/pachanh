@@ -77,12 +77,12 @@ echo ">> Finishing package..."
 
 ## Generate the header
  clean_line
- printf "\r>> (20%%)_ Generating headers..."
- echo "name=$name" >> $header
- echo "version=$ver" >> $header
- echo "desc=$desc" >> $header
- echo depends=\"$depends\" >> $header
- echo "pkg_infodir=/var/lib/pactav/system/$name" >> $header 
+ printf "\r>> (20%%)_ Generating header..."
+ echo "name=\"$name\"" >> $header
+ echo "version=\"$ver\"" >> $header
+ echo "desc=\"$desc\"" >> $header
+ echo "depends=\"$depends\"" >> $header
+ echo "pkg_infodir=\"/var/lib/pactav/system/$name\"" >> $header 
 
 ## Compress the package 
  clean_line
