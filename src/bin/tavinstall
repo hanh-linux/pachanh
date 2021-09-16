@@ -122,11 +122,11 @@ for pkg in $package; do
 
  if [ -f "$oldfile" ]; then
   clean_line
-  printf "\r>> (20%%)_ Filtering old files..."
-  difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/<//g')
+  printf "\r>> (20%%)_ Filtering old files...\n"
+  difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/< //g')
   
-  for files in $(echo $difffiles); do 
-   rm -rvf $files
+  for files in $difffiles; do 
+   rm -rvf $sysroot/$files
   done
 
  fi
