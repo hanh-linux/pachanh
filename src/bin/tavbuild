@@ -22,6 +22,8 @@ echo "--downloader=<command>                    Use command to install"
 echo "--clean                                   Clean all current work and package directory"
 echo "--no-unpack                               Use current work directory"
 echo "--repack                                  Make a package using current work directory"
+echo "--no-download                             Disable download sources"
+echo "--disable-depends                         Skip dependencies check"
 echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pactav"
 exit
 }
@@ -41,6 +43,67 @@ if [ ! -z "$depends" ]; then
    exit 1
   fi
  done
+fi
+}
+
+# Function for working with `contain` line
+contain_work(){
+if [ ! -z "$contain" ]; then
+ for contain_pkg in $contain; do
+  cd $pkgdir
+  ln -sf var/lib/pactav/system/$name var/lib/pactav/system/$contain_pkg
+ done
+fi
+}
+
+# Function for working with required buildtime binaries
+bin_check(){
+if [ ! -z "$build_bin" ]; then
+ clean_line
+ printf "\r>> Checking buildtime binaries..."
+
+ for binary in $build_bin; do
+  for search_dir in $TAV_BINDIR; do
+   [ -f $search_dir/$binary ] && final_binary=1 
+  done
+[ -z "$final_binary" ] && echo ">>> Binary $binary not found!" && exit 1
+ done
+
+ clean_line
+ printf "\r>> Finished binary check"
+fi
+}
+
+# Function for working with required runtime libraries
+lib_check() {
+if [ ! -z "$lib" ]; then
+ clean_line
+ printf "\r>> Checking runtime libraries..."
+ 
+ for library in $lib; do
+  for search_dir in $TAV_LIBDIR; do
+   [ -f "$search_dir/$library" ] && final_lib=1
+  done
+  [ -z "$final_lib" ] && echo ">>> Library $library not found!" && exit 1
+ done
+
+ clean_line
+ printf "\r>> Finished libraries check"
+fi
+}
+
+# Function for checking required files for building packages
+file_check() {
+if [ ! -z "$needed" ]; then
+ clean_line
+ printf "\r>> Checking files..."
+ 
+ for local_file in $needed; do
+  [ ! -f $tavdir/$local_file ] && printf "\n>>> File $local_file not found" && exit 1
+ done
+
+ clean_line
+ printf "\r>> Finished files check!"
 fi
 }
 
@@ -65,9 +128,12 @@ echo ">> Finishing package..."
  echo "Name: $name" >> $info_file
  echo "Version: $ver" >> $info_file
  echo "Description: $desc" >> $info_file
- echo "Depends: " $depends >> $info_file
+ echo "Depends: $depends $lib" >> $info_file
+ echo "Contain: $contain" >> $info_file 
  echo "Homepage: $home" >> $info_file
-
+## Work with contain function
+ printf "\r (5%%)__ Checking if the packages contains some smaller packages..."
+ contain_work
 ## Generate the filelist before generating the header. The header will not be included to the filelist and will be removed after the package is installed.
  clean_line
  printf "\r>> (10%%)_ Generating filelist..."
@@ -82,6 +148,8 @@ echo ">> Finishing package..."
  echo "version=\"$ver\"" >> $header
  echo "desc=\"$desc\"" >> $header
  echo "depends=\"$depends\"" >> $header
+ echo "lib=\"$lib\"" >> $header
+ echo "contain=\"$contain\"" >> $header
  echo "pkg_infodir=\"/var/lib/pactav/system/$name\"" >> $header 
 
 ## Compress the package 
@@ -126,7 +194,7 @@ case $x in
 "--downloader"=*) override_downloader=$(echo "$x" | cut -d "=" -f 2);;
 "--clean") clean=1;;
 "--no-unpack") no_unpack=1;;
-"--repack")  no_unpack=1;repack=1;; 
+"--repack")  no_unpack=1;repack=1;;
 esac
 
 done
@@ -143,6 +211,9 @@ source $config
 # Check if the build file exists then source the build file
 [ -z $buildfile ] && buildfile=buildtav
 
+[ -z "$TAV_BINDIR" ] && TAV_BINDIR=$(echo $PATH | sed 's|:| |g')
+[ -z "$TAV_LIBDIR" ] && TAV_LIBDIR="/usr/lib /usr/lib64 /lib /lib64"
+
 if [ ! -f $buildfile ]; then
  echo ">>> Build file not found!"
  exit 1
@@ -153,6 +224,9 @@ source $buildfile
 # By default, check for dependencies. If --disable-depends is enabled, skip this step. 
 if [ "$check_deps" == 1 ]; then 
 depends_check
+bin_check
+lib_check
+printf "\n"
 fi
 
 # Check for available functions
@@ -163,36 +237,37 @@ grep_pkg=$(cat $buildfile | grep make-pkg | cut -d "(" -f 1)
 # Execute the functions above with options
 
 if [ "$clean" == 1 ]; then
-echo ">> Cleaning necessary directories..."
+printf "\n>> Cleaning necessary directories..."
 no_unpack=0
 rm -rf $pkgdir $workdir
 fi
 
-echo ">> Creating necessary directories if needed..."
+printf "\n>> Creating necessary directories if needed..."
 mkdir -p $pkgdir $workdir
+
+file_check
 
 [ "$download" == 1 ] && download_source
 
 [ -z "$grep_unpack" ] && no_unpack=1 
 
-
 [ -z "$grep_compile" ] && repack=1
 
 if [ "$no_unpack" == 0 ]; then
  clean_line
- echo ">> Unpacking sources..."
+ printf \n">> Unpacking sources..."
  unpack-pkg
 fi
 
 if [ "$repack" == 0 ]; then
- echo ">> Compiling sources..."
+ printf "\n>> Compiling sources..."
  compile-pkg
 fi
 
 for repack_command in  $grep_pkg; do
  rm -rf $pkgdir && mkdir -p $pkgdir
  clean_line
- echo ">> Making package: $name..."
+ printf "\n>> Making package: $name... \n"
  eval $repack_command
  archive_pkg
 done
