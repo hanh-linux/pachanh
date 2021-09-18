@@ -64,14 +64,14 @@ done
 
 # Get some variables
 [ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit 1
-[ -z "$config" ] && config="CONFDIR/etc/tav.conf"
+[ -z "$config" ] && config="/home/user/test-pactav/etc/tav.conf"
 source $config
 
 if [ ! -z "$override_sysroot" ]; then 
  [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found!" && exit 1
  sysroot=$override_sysroot
 fi
-[ -z "$sysroot" ] && sysroot="SYSROOT/"
+[ -z "$sysroot" ] && sysroot="/home/user/test-pactav/"
 
 infodir="$sysroot/var/lib/pactav/system/"
 [ -z "$files" ] && files="info filelist header"

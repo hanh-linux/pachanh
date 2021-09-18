@@ -15,6 +15,9 @@ command="$*"
 eval $command
 
 [ "$HELP" == 1 ] && help && exit
+[ -z "$CONFDIR" ] && CONFDIR=$DESTDIR
+[ -z "$SYSROOT" ] && SYSROOT=$DESTDIR
+
 
 echo "<< pactav install script"
 echo ">> Summary"
@@ -24,9 +27,8 @@ echo "System root=$SYSROOT"
 echo "Configuration directory=$CONFDIR"
 echo -ne "\n"
 
-
 echo ">> Checking requirements..."
-needed_command="rm printf exit echo source case for if tee find tar xz mkdir eval cat [ diff sh"
+needed_command="rm printf exit echo source case for if tee find tar gzip mkdir eval cat [ diff sh readlink ln"
 recommended_command="wget bash"
 
 printf "\n"

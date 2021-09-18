@@ -216,7 +216,7 @@ done
 
 # Source the configuration file
 [ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit 1
-[ -z "$config" ] && config="CONFDIR/etc/tavbuild.conf"
+[ -z "$config" ] && config="/home/user/test-pactav/etc/tavbuild.conf"
 source $config
 
 # Check if the download command is available.
