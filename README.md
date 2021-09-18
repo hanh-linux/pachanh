@@ -2,4 +2,6 @@
 Project Tavorties simple package manager with `makepkg`-style.
 
 
-Currently, the project is updating. Please wait...
+## Installation
+- Download release from release tags or clone the repository (not recommended). 
+- Change to the downloaded directory, run `./install-script HELP=1` for more information.
