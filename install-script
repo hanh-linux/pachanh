@@ -28,7 +28,7 @@ echo "Configuration directory=$CONFDIR"
 echo -ne "\n"
 
 echo ">> Checking requirements..."
-needed_command="rm printf exit echo source case for if tee find tar gzip mkdir eval cat [ diff sh readlink ln"
+needed_command="install sed rm printf exit echo source case for if tee find tar gzip mkdir eval cat [ diff sh readlink ln"
 recommended_command="wget bash"
 
 printf "\n"
