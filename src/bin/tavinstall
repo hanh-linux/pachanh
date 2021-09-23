@@ -25,6 +25,8 @@ echo "--sync                                    Sync database from remote"
 echo "--search                                  Search for packages"
 echo "--install                                 Install packages <file>"
 echo "--remove                                  Remove packages"
+echo "--gen-skel=<path>                         Generate the packages build files"
+echo "--build=<full path to directory>          Build all available build files inside a directory"
 echo "Options"
 echo "--help                                    Print this message"
 echo "--version                                 Print version"
@@ -33,7 +35,6 @@ echo "--sysroot=<path>                          Change root directory"
 echo "--downloader=<command>                    Use another download command"
 echo "--mirror-file=<path>                      Use specified mirror file"
 echo "--disable-depends                         Disable dependencies check"
-echo "--gen-skel=<path>                         Generate the packages build files"
 echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pactav"
 }
 
@@ -137,10 +138,14 @@ done
 skel_gen(){
 printf "\n>> (0%%)__ Copying build files..."
 cd $dir_skel
-tar -xf $dbdir/package-data.tar.gz
-clean_line
-printf "\r>> (50%%)_ Cleaning up..."
-rm -rf repo-update.sh README.md example.md date 
+if [ -z "$package" ]; then
+ tar -xf $dbdir/package-data.tar.gz 
+else
+ for pkg_build_dir in $package; do
+  [ ! -d "$dbdir/$pkg_build_dir" ] && printf "\n>>> Package $pkg_build_dir not found! Exiting...\n" && exit 1
+  cp -r $dbdir/$pkg_build_dir .
+ done
+fi
 printf "\r>> (100%%)"
 }
 
@@ -229,6 +234,22 @@ for pkg_dir in $package; do
 done
 }
 
+build_all() {
+printf "\n>> (0%%)__ Preparing..."
+cd $parent_dir
+clean_line
+printf "\r>> (5%%)__ Building packages..."
+for build_pkg in *; do
+ [ -d "$parent_dir"/"$build_pkg" ] && cd $parent_dir/$build_pkg && tavbuild
+done
+clean_line
+printf "\r>> (80%%)_ Moving packages to all_packages directory..."
+cd $parent_dir
+mkdir -p all_packages
+mv */*.tavbuild.tar.gz all_packages/
+printf "\r>> (100%%)"
+}
+
 printf "<< Executing command... \n"
 # Get some variables
 check_deps=1
@@ -250,6 +271,7 @@ case $x in
 "--disable-depends")    check_deps=0;;
 "--gen-skel"=*)         gen_skel=1;dir_skel=$(echo "$x" | cut -d "=" -f 2);;
 "--sync")		sync=1;;
+"--build="*)            all_build=1;parent_dir=$(echo $x | cut -d "=" -f 2);;
 "--search")		search=1;;
 "--install")		install=1;;
 "--remove")		remove=1;;
@@ -276,7 +298,7 @@ if [ ! -z "$override_sysroot" ]; then
  [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found! Exiting..." && exit 1
  sysroot=$override_sysroot
 fi	
-[ -z "$sysroot" ] && sysroot="SYSROOT/"
+[ -z "$sysroot" ] && sysroot="SYSROOT"
 
 [ -z "$TAV_LIBDIR" ] && TAV_LIBDIR="/lib /lib64 /usr/lib /usr/lib64"
 
@@ -288,7 +310,15 @@ dbdir="$sysroot/var/lib/pactav/remote"
 
 [ "$install" == 1 ] && [ "$remove" == 1 ] && echo ">>> --install option cannot be used with --remove option. Exiting..." && exit
 
-[ "$gen_skel" == 1 ] && [ ! -z "$dir_skel" ] && [ ! -d "$dir_skel" ] && echo ">>> Skeleton directory not found! Exiting..." && exit 1
+if [ "$gen_skel" == 1 ]; then
+[ ! -z "$dir_skel" ] && [ ! -d "$dir_skel" ] && echo ">>> Skeleton directory not found! Exiting..." && exit 1
+[ -z "$dir_skel" ] && dir_skel=.
+fi
+
+if [ "$all_build" == 1 ]; then
+[ ! -z "$parent_dir" ] && [ ! -d "$parent_dir" ] && echo ">>> Build directory not found! Exiting..." && exit 1
+[ -z "$dir_skel" ] && parent_dir=$(pwd)
+fi
 
 # Execute the functions above
 [ "$sync" == 1 ] && sync_data
@@ -298,5 +328,7 @@ dbdir="$sysroot/var/lib/pactav/remote"
 [ "$install" == 1 ] && install_pkg
 
 [ "$remove" == 1 ] && remove_pkg
+
+[ "$all_build" == 1 ] && build_all
 
 printf "\n>> Process executed successfully. \n"
