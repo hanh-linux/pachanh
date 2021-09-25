@@ -15,8 +15,8 @@ command="$*"
 eval $command
 
 [ "$HELP" == 1 ] && help && exit
-[ -z "$CONFDIR" ] && CONFDIR=$PREFIX
-[ -z "$SYSROOT" ] && SYSROOT=$PREFIX
+[ -z "$CONFDIR" ] && CONFDIR=$DESTDIR
+[ -z "$SYSROOT" ] && SYSROOT=$DESTDIR
 
 
 echo "<< pactav install script"
