@@ -12,7 +12,7 @@ printf "\n"
 
 # Help function
 help() {
-echo "tavbuild - Project Tavorites packages builder"
+echo "hanhbuild - Hanh Linux packages builder"
 echo "Usage: tavbuild [options]"
 echo "Options"
 echo "--help                                    Print this message"
@@ -64,7 +64,7 @@ if [ ! -z "$build_bin" ]; then
  printf "\r>> Checking buildtime binaries..."
 
  for binary in $build_bin; do
-  for search_dir in $TAV_BINDIR; do
+  for search_dir in $HANH_BINDIR; do
    [ -f $search_dir/$binary ] && final_binary=1 
   done
 [ -z "$final_binary" ] && echo ">>> Binary $binary not found!" && exit 1
@@ -82,7 +82,7 @@ if [ ! -z "$lib" ]; then
  printf "\r>> Checking runtime libraries..."
  
  for library in $lib; do
-  for search_dir in $TAV_LIBDIR; do
+  for search_dir in $HANH_LIBDIR; do
    [ -f "$search_dir/$library" ] && final_lib=1
   done
   [ -z "$final_lib" ] && echo ">>> Library $library not found!" && exit 1
@@ -100,7 +100,7 @@ if [ ! -z "$needed" ]; then
  printf "\r>> Checking files..."
  
  for local_file in $needed; do
-  [ ! -f $tavdir/$local_file ] && printf "\n>>> File $local_file not found" && exit 1
+  [ ! -f $hanhdir/$local_file ] && printf "\n>>> File $local_file not found" && exit 1
  done
 
  clean_line
@@ -114,8 +114,8 @@ archive_pkg(){
 echo ">> Finishing package..."
 
 ## Get some useful variables
- pkg_tarball="$name"-"$ver".tavbuild.tar.gz
- info_dir="$pkgdir/var/lib/pactav/system"
+ pkg_tarball="$name"-"$ver".hanhbuild.tar.gz
+ info_dir="$pkgdir/var/lib/pachanh/system"
  info_pkgdir="$info_dir/$name"
  info_file=$info_pkgdir/info
  info_filelist=$info_pkgdir/filelist
@@ -140,7 +140,7 @@ echo ">> Finishing package..."
  echo "depends=\"$depends\"" >> $local_header
  echo "lib=\"$lib\"" >> $local_header
  echo "contain=\"$contain\"" >> $local_header
- echo "pkg_infodir=\"var/lib/pactav/system/$name\"" >> $local_header 
+ echo "pkg_infodir=\"var/lib/pachanh/system/$name\"" >> $local_header 
 
 ## Work with contain line
  clean_line
@@ -163,12 +163,12 @@ echo ">> Finishing package..."
  echo "depends=\"$depends\"" >> $header
  echo "lib=\"$lib\"" >> $header
  echo "contain=\"$contain\"" >> $header
- echo "pkg_infodir=\"var/lib/pactav/system/$name\"" >> $header 
+ echo "pkg_infodir=\"var/lib/pachanh/system/$name\"" >> $header 
 
 ## Compress the package 
  clean_line
  printf "\r>> (30%%)_ Compressing package..."
- tar -cJf $tavdir/$pkg_tarball *
+ tar -cJf $hanhdir/$pkg_tarball *
  
  clean_line
  printf "\r>> (100%%) Package created: $pkg_tarball" 
@@ -206,6 +206,7 @@ case $x in
 "--no-download") download=0;;
 "--disable-depends") check_deps=0;;
 "--downloader"=*) override_downloader=$(echo "$x" | cut -d "=" -f 2);;
+"--sysroot="*) override_sysroot=$(echo "$x" | cut -d "=" -f 2);;
 "--clean") clean=1;;
 "--no-unpack") no_unpack=1;;
 "--repack")  no_unpack=1;repack=1;;
@@ -216,18 +217,25 @@ done
 
 # Source the configuration file
 [ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit 1
-[ -z "$config" ] && config="CONFDIR/etc/tavbuild.conf"
+[ -z "$config" ] && config="CONFDIR/etc/hanhbuild.conf"
 source $config
+
+if [ ! -z "$override_sysroot" ]; then
+ [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found! Exiting..." && exit 1
+ sysroot=$override_sysroot
+fi	
+[ -z "$sysroot" ] && sysroot="SYSROOT/"
+
 
 # Check if the download command is available.
 [ ! -z "$override_downloader" ] && downloader="$override_downloader"
 [ -z "$downloader" ] && echo ">>> Download command not found" && exit 1
 
 # Check if the build file exists then source the build file
-[ -z $buildfile ] && buildfile=buildtav
+[ -z $buildfile ] && buildfile=buildhanh
 
-[ -z "$TAV_BINDIR" ] && TAV_BINDIR=$(echo $PATH | sed 's|:| |g')
-[ -z "$TAV_LIBDIR" ] && TAV_LIBDIR="/usr/lib /usr/lib64 /lib /lib64"
+[ -z "$TAV_BINDIR" ] && HANH_BINDIR=$(echo $PATH | sed 's|:| |g')
+[ -z "$TAV_LIBDIR" ] && HANH_LIBDIR="/usr/lib /usr/lib64 /lib /lib64"
 
 if [ ! -f $buildfile ]; then
  echo ">>> Build file not found!"

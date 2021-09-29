@@ -18,7 +18,7 @@ printf "\r                                                        "
 ## Function for printing help
 help() {
 echo ">> Printing help"
-echo "tavinstall - Project Tavorites packages installer"
+echo "hanhinstall - Hanh Linux packages installer"
 echo "Usage: tavinstall [options] [action] package"
 echo "Action"
 echo "--sync                                    Sync database from remote"
@@ -26,7 +26,7 @@ echo "--search                                  Search for packages"
 echo "--install                                 Install packages <file>"
 echo "--remove                                  Remove packages"
 echo "--gen-skel=<path>                         Generate the packages build files"
-echo "--build=<full path to directory>          Build all available build files inside a directory"
+echo "--build-all=<directory>                   Build all available build files inside a directory"
 echo "Options"
 echo "--help                                    Print this message"
 echo "--version                                 Print version"
@@ -54,7 +54,7 @@ depends_check(){
 lib_check(){
  if [ ! -z "$lib" ]; then
   for need_lib in $lib; do
-   for search_dir in $TAV_LIBDIR; do
+   for search_dir in $HANH_LIBDIR; do
     [ -f "$search_dir/$need_lib" ] && found_lib=1
    done
    [ -z "$found_lib" ] && echo ">>> Library $need_lib not found!" && exit 1 
@@ -77,7 +77,7 @@ if [ ! -z "$contain" ]; then
     read confirm
 ##### The lines below will be formatted like this due to compability
 case $confirm in 
-Y|y) tavinstall --remove $conflict;;
+Y|y) hanhinstall --remove $conflict;;
 *) exit 1;
 esac
 ##### End of directory check
@@ -91,7 +91,7 @@ esac
       read confirm
 ###### The lines below will be like this due to compatibility
 case $confirm in 
-Y|y) tavinstall --remove $link;;
+Y|y) hanhinstall --remove $link;;
 *) exit 1;
 esac
      fi
@@ -240,13 +240,13 @@ cd $parent_dir
 clean_line
 printf "\r>> (5%%)__ Building packages..."
 for build_pkg in *; do
- [ -d "$parent_dir"/"$build_pkg" ] && cd $parent_dir/$build_pkg && tavbuild
+ [ -d "$parent_dir"/"$build_pkg" ] && cd $parent_dir/$build_pkg && hanhbuild
 done
 clean_line
 printf "\r>> (80%%)_ Moving packages to all_packages directory..."
 cd $parent_dir
 mkdir -p all_packages
-mv */*.tavbuild.tar.gz all_packages/
+mv */*.hanhbuild.tar.gz all_packages/
 printf "\r>> (100%%)"
 }
 
@@ -285,27 +285,27 @@ done
 # Check for some variables
 
 [ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found! Exiting..." && exit 1
-[ -z "$config" ] && config="CONFDIR/etc/tav.conf"
+[ -z "$config" ] && config="CONFDIR/etc/hanh.conf"
 source $config
 
 [ ! -z "$override_downloader" ] && downloader="$override_downloader"
 [ -z "$downloader" ] && echo ">>> Download command not found! Exiting..." && exit 127
 
 [ ! -z "$mirror_file" ] && [ ! -f "$mirror_file" ] && echo ">>> Mirror file not found! Exiting..." && exit 1
-[ -z "$mirror_file" ] && mirror_file="CONFDIR/etc/tavmirror"
+[ -z "$mirror_file" ] && mirror_file="CONFDIR/etc/hanhmirror"
 
 if [ ! -z "$override_sysroot" ]; then
  [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found! Exiting..." && exit 1
  sysroot=$override_sysroot
 fi	
-[ -z "$sysroot" ] && sysroot="SYSROOT"
+[ -z "$sysroot" ] && sysroot="SYSROOT/"
 
-[ -z "$TAV_LIBDIR" ] && TAV_LIBDIR="/lib /lib64 /usr/lib /usr/lib64"
+[ -z "$TAV_LIBDIR" ] && HANH_LIBDIR="/lib /lib64 /usr/lib /usr/lib64"
 
-installed_infodir="$sysroot/var/lib/pactav/system/"
+installed_infodir="$sysroot/var/lib/pachanh/system/"
 [ ! -d "$installed_infodir" ] && echo ">>> System packages information directory not found! Exiting..." && exit 1
 
-dbdir="$sysroot/var/lib/pactav/remote"
+dbdir="$sysroot/var/lib/pachanh/remote"
 [ ! -d "$dbdir" ] && echo ">>> Database directory not found! Exiting..." && exit 1
 
 [ "$install" == 1 ] && [ "$remove" == 1 ] && echo ">>> --install option cannot be used with --remove option. Exiting..." && exit

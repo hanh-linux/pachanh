@@ -13,13 +13,13 @@ printf "<< Exiting\n"
 
 # Function for printing help
 help() {
-echo "tavinfo - Project Tavorites installed packages search tool"
+echo "hanhinfo - Hanh Linux installed packages search tool"
 echo "Usage: tavinfo [options] [package]"
 echo "Options"
 echo "--help                                    Print this message"
 echo "--version                                 Print version"
 echo "--config=<path to config>                 Use a alternative config"
-echo "--type=[info,filelist,filelist]           See type of information"
+echo "--type=[info,filelist]                    See type of information"
 echo "--sysroot=<path>                          Change root directory"
 echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pactav"
 exit
@@ -64,7 +64,7 @@ done
 
 # Get some variables
 [ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit 1
-[ -z "$config" ] && config="CONFDIR/etc/tav.conf"
+[ -z "$config" ] && config="CONFDIR/etc/hanh.conf"
 source $config
 
 if [ ! -z "$override_sysroot" ]; then 
@@ -73,7 +73,7 @@ if [ ! -z "$override_sysroot" ]; then
 fi
 [ -z "$sysroot" ] && sysroot="SYSROOT/"
 
-infodir="$sysroot/var/lib/pactav/system/"
+infodir="$sysroot/var/lib/pachanh/system/"
 [ -z "$files" ] && files="info filelist header"
 
 # Run the functions above

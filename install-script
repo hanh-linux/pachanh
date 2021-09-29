@@ -19,7 +19,7 @@ eval $command
 [ -z "$SYSROOT" ] && SYSROOT=$DESTDIR
 
 
-echo "<< pactav install script"
+echo "<< pachanh install script"
 echo ">> Summary"
 echo "Destdir=$DESTDIR"
 echo "Prefix=$PREFIX"
@@ -61,19 +61,19 @@ fi
 sleep 0.5s
 done
 printf "\n>> Done"
-printf "\n>> Installing pactav... \n"
+printf "\n>> Installing pachanh... \n"
 
 cp -r src/{bin,etc} .
 
-sed "s|CONFDIR|$CONFDIR|g" -i bin/tavinfo bin/tavinstall bin/tavbuild
-sed "s|SYSROOT|$SYSROOT|g" -i bin/tavinfo bin/tavinstall
+sed "s|CONFDIR|$CONFDIR|g" -i bin/hanhinfo bin/hanhinstall bin/hanhbuild
+sed "s|SYSROOT|$SYSROOT|g" -i bin/hanhinfo bin/hanhinstall
 
-install -Dvm755 bin/tavinstall $DESTDIR/$PREFIX/bin/tavinstall
-install -Dvm755 bin/tavbuild $DESTDIR/$PREFIX/bin/tavbuild
-install -Dvm755 bin/tavinfo $DESTDIR/$PREFIX/bin/tavinfo
+install -Dvm755 bin/hanhinstall $DESTDIR/$PREFIX/bin/hanhinstall
+install -Dvm755 bin/hanhbuild $DESTDIR/$PREFIX/bin/hanhbuild
+install -Dvm755 bin/hanhinfo $DESTDIR/$PREFIX/bin/hanhinfo
 
-install -Dvm644 etc/tav.conf $DESTDIR/etc/tav.conf
-install -Dvm644 etc/tavbuild.conf $DESTDIR/etc/tavbuild.conf
-install -Dvm644 etc/tavmirror $DESTDIR/etc/tavmirror
+install -Dvm644 etc/hanh.conf $DESTDIR/etc/hanh.conf
+install -Dvm644 etc/hanhbuild.conf $DESTDIR/etc/hanhbuild.conf
+install -Dvm644 etc/hanhmirror $DESTDIR/etc/hanhmirror
 
-install -dm755 $DESTDIR/$PREFIX/var/lib/pactav/{remote,system}
+install -dm755 $DESTDIR/$PREFIX/var/lib/pachanh/{remote,system}
