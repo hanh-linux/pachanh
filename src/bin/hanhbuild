@@ -24,7 +24,7 @@ echo "--no-unpack                               Use current work directory"
 echo "--repack                                  Make a package using current work directory"
 echo "--no-download                             Disable download sources"
 echo "--disable-depends                         Skip dependencies check"
-echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pactav"
+echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pachanh"
 exit
 }
 
@@ -38,7 +38,7 @@ depends_check() {
 printf "\r>> Checking dependencies.."
 if [ ! -z "$depends" ]; then
  for dep in $depends; do
-  if [ ! -d $sysroot/var/lib/pactav/$dep ]; then
+  if [ ! -d $sysroot/var/lib/pachanh/$dep ]; then
    printf "\n>>> $dep not found! Please install and compile it\n"
    exit 1
   fi
