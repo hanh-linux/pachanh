@@ -38,7 +38,7 @@ depends_check() {
 printf "\r>> Checking dependencies.."
 if [ ! -z "$depends" ]; then
  for dep in $depends; do
-  if [ ! -d $sysroot/var/lib/pachanh/$dep ]; then
+  if [ ! -d $sysroot/var/lib/pachanh/system/$dep ]; then
    printf "\n>>> $dep not found! Please install and compile it\n"
    exit 1
   fi
