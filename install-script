@@ -68,12 +68,15 @@ cp -r src/{bin,etc} .
 sed "s|CONFDIR|$CONFDIR|g" -i bin/hanhinfo bin/hanhinstall bin/hanhbuild
 sed "s|SYSROOT|$SYSROOT|g" -i bin/hanhinfo bin/hanhinstall bin/hanhbuild
 
+install -dvm755 $DESTDIR/$PREFIX/var/lib/pachanh/{remote,system}
+install -dvm755 $DESTDIR/$PREFIX/etc/hanhmirror.d/
+
 install -Dvm755 bin/hanhinstall $DESTDIR/$PREFIX/bin/hanhinstall
 install -Dvm755 bin/hanhbuild $DESTDIR/$PREFIX/bin/hanhbuild
 install -Dvm755 bin/hanhinfo $DESTDIR/$PREFIX/bin/hanhinfo
 
 install -Dvm644 etc/hanh.conf $DESTDIR/etc/hanh.conf
 install -Dvm644 etc/hanhbuild.conf $DESTDIR/etc/hanhbuild.conf
-install -Dvm644 etc/hanhmirror $DESTDIR/etc/hanhmirror
+install -Dvm644 etc/hanhmirror.d/package-data $DESTDIR/etc/hanhmirror.d/package-data
 
-install -dm755 $DESTDIR/$PREFIX/var/lib/pachanh/{remote,system}
+

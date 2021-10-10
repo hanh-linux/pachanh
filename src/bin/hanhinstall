@@ -26,7 +26,7 @@ echo "--search                                  Search for packages"
 echo "--install                                 Install packages <file>"
 echo "--remove                                  Remove packages"
 echo "--gen-skel=<path>                         Generate the packages build files"
-echo "--build-all=<directory>                   Build all available build files inside a directory"
+echo "--build=<directory>                       Build all available build files inside a directory"
 echo "Options"
 echo "--help                                    Print this message"
 echo "--version                                 Print version"
@@ -106,7 +106,7 @@ fi
 # Function for downloading database
 sync_data(){
 ## Get some variables
-all_server=$(cat $mirror_file)
+all_repo=$(ls -d $mirror_dir/*)
 
 ## Create the database directory if it doesn't exist
 [ ! -d "$dbdir" ] && mkdir -p $dbdir
@@ -116,22 +116,23 @@ printf "\n>> (0%%)__ Cleaning old database..."
 rm -rf *
 ## Download the database for the server
 clean_line
-printf "\r>> (20%%)_ Downloading database from server..."
-for server in $all_server
-do
- eval $downloader $server/package-data.tar.gz > /dev/null
+printf "\r>> (20%%)_ Working with database..."
+for repo_name in $all_repo; do
+ repo=$(basename $repo_name)
+ for server in $(cat $repo_name); do
 
+### Download the database
+  eval $downloader $server/$repo.tar.gz
 ### Check if the database archive is available
- if [ -f package-data.tar.gz ]; then
-  clean_line
-  printf "\r>> (80%%)_ Unpacking database..."
-  tar -xf package-data.tar.gz
-  printf "\r>> (100%%)"
-  exit
- fi
+  if [ -f $repo.tar.gz ]; then
+   tar -xf $repo.tar.gz
+   break
+  fi
 
+ done
 done
 
+printf "\r>> (100%%)"
 }
 
 # Function for copying build files
@@ -139,11 +140,17 @@ skel_gen(){
 printf "\n>> (0%%)__ Copying build files..."
 cd $dir_skel
 if [ -z "$package" ]; then
- tar -xf $dbdir/package-data.tar.gz 
+ cp -r $dbdir/* .
+ rm -rf *.tar.gz
 else
  for pkg_build_dir in $package; do
   [ ! -d "$dbdir/$pkg_build_dir" ] && printf "\n>>> Package $pkg_build_dir not found! Exiting...\n" && exit 1
   cp -r $dbdir/$pkg_build_dir .
+  source $dbdir/$pkg_build_dir/buildhanh 
+  for dep in $depends; do 
+   [ ! -d $dbdir/$dep ] && printf "\n>>> Depend $dep not found! Exiting..." && exit 1
+   [ -d $dbdir/$dep ] && hanhinstall --gen-skel=. $dep 
+  done
  done
 fi
 printf "\r>> (100%%)"
@@ -236,7 +243,8 @@ done
 
 build_all() {
 printf "\n>> (0%%)__ Preparing..."
-cd $parent_dir
+cd $build_dir
+parent_dir=$(pwd)
 clean_line
 printf "\r>> (5%%)__ Building packages..."
 for build_pkg in *; do
@@ -267,11 +275,11 @@ case $x in
 "--config"=*) 		config=$(echo "$x" | cut -d "=" -f 2);;
 "--sysroot"=*) 		override_sysroot=$(echo "$x" | cut -d "=" -f 2);;
 "--downloader"=*) 	override_downloader=$(echo "$x" | cut -d "=" -f 2);;
-"--mirror-file"=*)      mirror_file=$(echo "$x" | cut -d "=" -f 2);;
+"--mirror-dir"=*)       mirror_dir=$(echo "$x" | cut -d "=" -f 2);;
 "--disable-depends")    check_deps=0;;
 "--gen-skel"=*)         gen_skel=1;dir_skel=$(echo "$x" | cut -d "=" -f 2);;
 "--sync")		sync=1;;
-"--build="*)            all_build=1;parent_dir=$(echo $x | cut -d "=" -f 2);;
+"--build="*)            all_build=1;build_dir=$(echo $x | cut -d "=" -f 2);;
 "--search")		search=1;;
 "--install")		install=1;;
 "--remove")		remove=1;;
@@ -291,16 +299,16 @@ source $config
 [ ! -z "$override_downloader" ] && downloader="$override_downloader"
 [ -z "$downloader" ] && echo ">>> Download command not found! Exiting..." && exit 127
 
-[ ! -z "$mirror_file" ] && [ ! -f "$mirror_file" ] && echo ">>> Mirror file not found! Exiting..." && exit 1
-[ -z "$mirror_file" ] && mirror_file="CONFDIR/etc/hanhmirror"
+[ ! -z "$mirror_dir" ] && [ ! -f "$mirror_dir" ] && echo ">>> Mirror file not found! Exiting..." && exit 1
+[ -z "$mirror_dir" ] && mirror_dir="CONFDIR/etc/hanhmirror.d"
 
 if [ ! -z "$override_sysroot" ]; then
  [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found! Exiting..." && exit 1
  sysroot=$override_sysroot
 fi	
-[ -z "$sysroot" ] && sysroot="SYSROOT/"
+[ -z "$sysroot" ] && sysroot="SYSROOT"
 
-[ -z "$TAV_LIBDIR" ] && HANH_LIBDIR="/lib /lib64 /usr/lib /usr/lib64"
+[ -z "$HANH_LIBDIR" ] && HANH_LIBDIR="/lib /lib64 /usr/lib /usr/lib64"
 
 installed_infodir="$sysroot/var/lib/pachanh/system/"
 [ ! -d "$installed_infodir" ] && echo ">>> System packages information directory not found! Exiting..." && exit 1
@@ -316,8 +324,8 @@ if [ "$gen_skel" == 1 ]; then
 fi
 
 if [ "$all_build" == 1 ]; then
-[ ! -z "$parent_dir" ] && [ ! -d "$parent_dir" ] && echo ">>> Build directory not found! Exiting..." && exit 1
-[ -z "$dir_skel" ] && parent_dir=$(pwd)
+[ ! -z "$build_dir" ] && [ ! -d "$build_dir" ] && echo ">>> Build directory not found! Exiting..." && exit 1
+[ -z "$build_dir" ] && echo ">>> Enter a build directory! Exiting..." && exit 1
 fi
 
 # Execute the functions above
