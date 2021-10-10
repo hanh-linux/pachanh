@@ -10,16 +10,24 @@ func_exit() {
 printf "<< Exiting...\n"
 }
 
-## Function for cleaning line
+# Function for cleaning line
 clean_line(){
 printf "\r                                                        "
 }
 
-## Function for printing help
+info() {
+clean_line && printf "\r>> $1"
+}
+
+err() {
+printf "\n>>> $1\n" && exit 1
+}
+
+# Function for printing help
 help() {
 echo ">> Printing help"
 echo "hanhinstall - Hanh Linux packages installer"
-echo "Usage: tavinstall [options] [action] package"
+echo "Usage: hanhinstall [options] [action] package"
 echo "Action"
 echo "--sync                                    Sync database from remote"
 echo "--search                                  Search for packages"
@@ -43,7 +51,7 @@ depends_check(){
  if [ ! -z "$depends" ]; then
   for dep in $depends; do
    if [ ! -d $installed_infodir/$dep ]; then
-   echo -ne "\n>>> $dep not found! Please compile and install it...\n"
+   err "$dep not found! Please compile and install it..."
    exit 1
    fi
   done
@@ -57,7 +65,7 @@ lib_check(){
    for search_dir in $HANH_LIBDIR; do
     [ -f "$search_dir/$need_lib" ] && found_lib=1
    done
-   [ -z "$found_lib" ] && echo ">>> Library $need_lib not found!" && exit 1 
+   [ -z "$found_lib" ] && err ">>> Library $need_lib not found!"
   done
  fi
 
@@ -112,11 +120,12 @@ all_repo=$(ls -d $mirror_dir/*)
 [ ! -d "$dbdir" ] && mkdir -p $dbdir
 cd $dbdir
 ## Clear old database
-printf "\n>> (0%%)__ Cleaning old database..."
+printf "\n"
+info "(0%%)__ Cleaning old database..."
 rm -rf *
 ## Download the database for the server
 clean_line
-printf "\r>> (20%%)_ Working with database..."
+info "(20%%)_ Working with database..."
 for repo_name in $all_repo; do
  repo=$(basename $repo_name)
  for server in $(cat $repo_name); do
@@ -132,23 +141,24 @@ for repo_name in $all_repo; do
  done
 done
 
-printf "\r>> (100%%)"
+info "(100%%)"
 }
 
 # Function for copying build files
 skel_gen(){
-printf "\n>> (0%%)__ Copying build files..."
+printf "\n"
+info "(0%%)__ Copying build files..."
 cd $dir_skel
 if [ -z "$package" ]; then
  cp -r $dbdir/* .
  rm -rf *.tar.gz
 else
  for pkg_build_dir in $package; do
-  [ ! -d "$dbdir/$pkg_build_dir" ] && printf "\n>>> Package $pkg_build_dir not found! Exiting...\n" && exit 1
+  [ ! -d "$dbdir/$pkg_build_dir" ] && err "Package $pkg_build_dir not found! Exiting..."
   cp -r $dbdir/$pkg_build_dir .
   source $dbdir/$pkg_build_dir/buildhanh 
   for dep in $depends; do 
-   [ ! -d $dbdir/$dep ] && printf "\n>>> Depend $dep not found! Exiting..." && exit 1
+   [ ! -d $dbdir/$dep ] && err "Depend $dep not found! Exiting..."
    [ -d $dbdir/$dep ] && hanhinstall --gen-skel=. $dep 
   done
  done
@@ -160,11 +170,12 @@ printf "\r>> (100%%)"
 install_pkg() { 
 for pkg in $package; do
 ### Check if the package exists
- [ ! -f "$pkg" ] && printf "\n>>> Package tarball not found!\n" && exit 1
+ [ ! -f "$pkg" ] && err "Package tarball not found!"
 
 ### If the package is available, unpack the pre-install file for checking dependencies and filtering old files. 
 
- printf "\n>> (0%%)__ Unpacking package header..."
+ printf "\n"
+ info "(0%%)__ Unpacking package header..."
  TEMP=$(mktemp -d)
  tar -C $TEMP -xf $pkg pre-install
  source $TEMP/pre-install
@@ -173,18 +184,18 @@ for pkg in $package; do
 
  if [ "$check_deps" == 1 ]; then
   clean_line
-  printf "\r>> (5%%)__ Checking dependencies..."
+  info "(5%%)__ Checking dependencies..."
   depends_check
   lib_check
  fi
 
 ### Check the conflicts package
- printf "\r>> (10%%)_ Checking conflicts..."
+ info "(10%%)_ Checking conflicts..."
  conflicts_func
 
 ### Get package info directory
  clean_line
- printf "\r>> (15%%)_ Getting infomation directory..." 
+ info "(15%%)_ Getting infomation directory..." 
  tar -C $TEMP -xf $pkg $pkg_infodir
 
 ### Filter the old files
@@ -193,7 +204,7 @@ for pkg in $package; do
 
  if [ -f "$oldfile" ]; then
   clean_line
-  printf "\r>> (20%%)_ Filtering old files...\n"
+  info ">> (20%%)_ Filtering old files..."
   difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/< //g')
   for files in $difffiles; do 
    rm -rvf $sysroot/$files
@@ -202,10 +213,10 @@ for pkg in $package; do
 
 ### Unpack the package to $sysroot
  clean_line
- printf "\r>> (30%%)_ Installing $name..."
+ info "(30%%)_ Installing $name..."
  tar -C $sysroot -xf $pkg
  rm -rf $sysroot/pre-install $TEMP
- printf "\r>> (100%%)"
+ info "(100%%)"
 
 done
 }
@@ -218,16 +229,13 @@ for pkg_dir in $package; do
  installed_pkg_header=$installed_infodir/$pkg_dir/header
 
 ### Check if the package is installed on the system
- printf "\n>> (0%%)__ Checking if the packages is installed..."
- if [ ! -d "$installed_infodir/$pkg_dir" ]; then 
-   echo -ne "\n>>> Package $pkg_dir not found! Exiting...\n"
-   exit 1
- fi
+ info "(0%%)__ Checking if the packages is installed..."
+ [ ! -d "$installed_infodir/$pkg_dir" ] && err "Package $pkg_dir not found! Exiting..."
  source $installed_pkg_header
 
 ### Remove files (folders will be ignored because it may delete the necessary folders)
  clean_line
- printf "\r>> (10%%)_ Removing $pkg_dir..."
+ info "(10%%)_ Removing $pkg_dir..."
  cd $sysroot
  rm -f $(cat $installed_pkg_filelist) > /dev/null 2>&1 || true
 
@@ -236,26 +244,27 @@ for pkg_dir in $package; do
  rm -rf $installed_infodir/$remove_conflict
  done 
  rm -rf $installed_infodir/$name 
- printf "\r>> (100%%)"
+ info "\r>> (100%%)"
 
 done
 }
 
 build_all() {
-printf "\n>> (0%%)__ Preparing..."
+printf "\n" 
+info "(0%%)__ Preparing..."
 cd $build_dir
 parent_dir=$(pwd)
 clean_line
-printf "\r>> (5%%)__ Building packages..."
+info "(5%%)__ Building packages..."
 for build_pkg in *; do
- [ -d "$parent_dir"/"$build_pkg" ] && cd $parent_dir/$build_pkg && hanhbuild
+ [ -d "$parent_dir"/"$build_pkg" ] && cd $parent_dir/$build_pkg && hanhbuild --disable-depends
 done
 clean_line
-printf "\r>> (80%%)_ Moving packages to all_packages directory..."
+info ">> (80%%)_ Moving packages to all_packages directory..."
 cd $parent_dir
 mkdir -p all_packages
 mv */*.hanhbuild.tar.gz all_packages/
-printf "\r>> (100%%)"
+info "\r>> (100%%)"
 }
 
 printf "<< Executing command... \n"
@@ -292,18 +301,18 @@ done
 
 # Check for some variables
 
-[ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found! Exiting..." && exit 1
+[ ! -z "$config" ] && [ ! -f "$config" ] && err "Configuration file not found! Exiting..."
 [ -z "$config" ] && config="CONFDIR/etc/hanh.conf"
 source $config
 
 [ ! -z "$override_downloader" ] && downloader="$override_downloader"
-[ -z "$downloader" ] && echo ">>> Download command not found! Exiting..." && exit 127
+[ -z "$downloader" ] && err "Download command not found! Exiting..."
 
-[ ! -z "$mirror_dir" ] && [ ! -f "$mirror_dir" ] && echo ">>> Mirror file not found! Exiting..." && exit 1
+[ ! -z "$mirror_dir" ] && [ ! -d "$mirror_dir" ] && err "Mirror file not found! Exiting..."
 [ -z "$mirror_dir" ] && mirror_dir="CONFDIR/etc/hanhmirror.d"
 
 if [ ! -z "$override_sysroot" ]; then
- [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found! Exiting..." && exit 1
+ [ ! -d "$override_sysroot" ] && err ">>> $override_sysroot not found! Exiting..."
  sysroot=$override_sysroot
 fi	
 [ -z "$sysroot" ] && sysroot="SYSROOT"
@@ -311,21 +320,21 @@ fi
 [ -z "$HANH_LIBDIR" ] && HANH_LIBDIR="/lib /lib64 /usr/lib /usr/lib64"
 
 installed_infodir="$sysroot/var/lib/pachanh/system/"
-[ ! -d "$installed_infodir" ] && echo ">>> System packages information directory not found! Exiting..." && exit 1
+[ ! -d "$installed_infodir" ] && err "System packages information directory not found! Exiting..."
 
 dbdir="$sysroot/var/lib/pachanh/remote"
-[ ! -d "$dbdir" ] && echo ">>> Database directory not found! Exiting..." && exit 1
+[ ! -d "$dbdir" ] && err "Database directory not found! Exiting..."
 
-[ "$install" == 1 ] && [ "$remove" == 1 ] && echo ">>> --install option cannot be used with --remove option. Exiting..." && exit
+[ "$install" == 1 ] && [ "$remove" == 1 ] && err "--install option cannot be used with --remove option. Exiting..."
 
 if [ "$gen_skel" == 1 ]; then
-[ ! -z "$dir_skel" ] && [ ! -d "$dir_skel" ] && echo ">>> Skeleton directory not found! Exiting..." && exit 1
+[ ! -z "$dir_skel" ] && [ ! -d "$dir_skel" ] && err "Skeleton directory not found! Exiting..."
 [ -z "$dir_skel" ] && dir_skel=.
 fi
 
 if [ "$all_build" == 1 ]; then
-[ ! -z "$build_dir" ] && [ ! -d "$build_dir" ] && echo ">>> Build directory not found! Exiting..." && exit 1
-[ -z "$build_dir" ] && echo ">>> Enter a build directory! Exiting..." && exit 1
+[ ! -z "$build_dir" ] && [ ! -d "$build_dir" ] && err "Build directory not found! Exiting..."
+[ -z "$build_dir" ] && err "Enter a build directory, please! Exiting..."
 fi
 
 # Execute the functions above
@@ -338,5 +347,3 @@ fi
 [ "$remove" == 1 ] && remove_pkg
 
 [ "$all_build" == 1 ] && build_all
-
-printf "\n>> Process executed successfully. \n"
