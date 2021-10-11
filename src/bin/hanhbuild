@@ -13,7 +13,7 @@ printf "\n"
 # Help function
 help() {
 echo "hanhbuild - Hanh Linux packages builder"
-echo "Usage: tavbuild [options]"
+echo "Usage: hanhbuild [options]"
 echo "Options"
 echo "--help                                    Print this message"
 echo "--config=<path to config>                 Use a alternative config"
@@ -33,14 +33,23 @@ clean_line(){
 printf "\r                                                 "
 }
 
+# Function for printing infomation
+info() {
+clean_line && printf "\r>> $1"
+}
+
+# Function for printing error
+err() {
+printf "\n>>> $1" && exit 1
+}
+
 # Function for dependencies checking
 depends_check() {
-printf "\r>> Checking dependencies.."
+info "Checking dependencies.."
 if [ ! -z "$depends" ]; then
  for dep in $depends; do
   if [ ! -d $sysroot/var/lib/pachanh/system/$dep ]; then
-   printf "\n>>> $dep not found! Please install and compile it\n"
-   exit 1
+   err "$dep not found! Please install and compile it"
   fi
  done
 fi
@@ -60,58 +69,52 @@ fi
 # Function for working with required buildtime binaries
 bin_check(){
 if [ ! -z "$build_bin" ]; then
- clean_line
- printf "\r>> Checking buildtime binaries..."
+ info "Checking buildtime binaries..."
 
  for binary in $build_bin; do
   for search_dir in $HANH_BINDIR; do
    [ -f $search_dir/$binary ] && final_binary=1 
   done
-[ -z "$final_binary" ] && echo ">>> Binary $binary not found!" && exit 1
+ [ -z "$final_binary" ] && err "Binary $binary not found!"
  done
 
- clean_line
- printf "\r>> Finished binaries check"
+ info "Finished binaries check"
 fi
 }
 
 # Function for working with required runtime libraries
 lib_check() {
-if [ ! -z "$lib" ]; then
- clean_line
- printf "\r>> Checking runtime libraries..."
+if [ ! -z "$lib" ]; then 
+ info "Checking runtime libraries..."
  
  for library in $lib; do
   for search_dir in $HANH_LIBDIR; do
    [ -f "$search_dir/$library" ] && final_lib=1
   done
-  [ -z "$final_lib" ] && echo ">>> Library $library not found!" && exit 1
+  [ -z "$final_lib" ] && err "Library $library not found!"
  done
 
- clean_line
- printf "\r>> Finished libraries check"
+ info "Finished libraries check"
 fi
 }
 
 # Function for checking required files for building packages
 file_check() {
-if [ ! -z "$needed" ]; then
- clean_line
- printf "\r>> Checking files..."
+if [ ! -z "$needed" ]; then 
+ info "Checking files..."
  
  for local_file in $needed; do
-  [ ! -f $hanhdir/$local_file ] && printf "\n>>> File $local_file not found" && exit 1
+  [ ! -f $hanhdir/$local_file ] && err "File $local_file not found"
  done
 
- clean_line
- printf "\r>> Finished files check!"
+ info "Finished files check!"
 fi
 }
 
 # Function for package archive
 archive_pkg(){
 
-echo ">> Finishing package..."
+ info "Finishing package..."
 
 ## Get some useful variables
  pkg_tarball="$name"-"$ver".hanhbuild.tar.gz
@@ -124,7 +127,7 @@ echo ">> Finishing package..."
 
 ## Generate package infomation and local header
  printf "\n"
- printf ">> (0%%)__ Generating information..."
+ info "(0%%)__ Generating information..."
 
  mkdir -p $info_pkgdir
  echo "Name: $name" >> $info_file
@@ -142,21 +145,18 @@ echo ">> Finishing package..."
  echo "contain=\"$contain\"" >> $local_header
  echo "pkg_infodir=\"var/lib/pachanh/system/$name\"" >> $local_header 
 
-## Work with contain line
- clean_line
- printf ">> (5%%)__ Check if the package contain smaller packages..."
+## Work with contain line 
+ info "(5%%)__ Check if the package contain smaller packages..."
  contain_work
 
 ## Generate the filelist.
- clean_line
- printf "\r>> (10%%)_ Generating filelist..."
+ info "(10%%)_ Generating filelist..."
 
  cd $pkgdir
  find * | tee $info_filelist > /dev/null 2>&1
 
 ## Generate the parent header. This header will be removed after the package installation finish.
- clean_line
- printf "\r>> (20%%)_ Generating header..."
+ info "(20%%)_ Generating header..."
  echo "name=\"$name\"" >> $header
  echo "version=\"$ver\"" >> $header
  echo "desc=\"$desc\"" >> $header
@@ -166,19 +166,16 @@ echo ">> Finishing package..."
  echo "pkg_infodir=\"var/lib/pachanh/system/$name\"" >> $header 
 
 ## Compress the package 
- clean_line
- printf "\r>> (30%%)_ Compressing package..."
+ info "(30%%)_ Compressing package..."
  tar -cJf $hanhdir/$pkg_tarball *
  
- clean_line
- printf "\r>> (100%%) Package created: $pkg_tarball" 
+ info "(100%%) Package created: $pkg_tarball" 
 }
 
 # Function for downloading source
 download_source(){
  if [ ! -z "$sources" ]; then
- clean_line
- echo ">> Sources detected! Downloading..."
+ info "Sources detected! Downloading..."
   for need_file in $sources; do
    eval $downloader $need_file
   done
@@ -216,12 +213,12 @@ esac
 done
 
 # Source the configuration file
-[ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit 1
+[ ! -z "$config" ] && [ ! -f "$config" ] && err "Configuration file not found!"
 [ -z "$config" ] && config="CONFDIR/etc/hanhbuild.conf"
 source $config
 
 if [ ! -z "$override_sysroot" ]; then
- [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found! Exiting..." && exit 1
+ [ ! -d "$override_sysroot" ] && err "$override_sysroot not found! Exiting..."
  sysroot=$override_sysroot
 fi	
 [ -z "$sysroot" ] && sysroot="SYSROOT/"
@@ -229,7 +226,7 @@ fi
 
 # Check if the download command is available.
 [ ! -z "$override_downloader" ] && downloader="$override_downloader"
-[ -z "$downloader" ] && echo ">>> Download command not found" && exit 1
+[ -z "$downloader" ] && err "Download command not found"
 
 # Check if the build file exists then source the build file
 [ -z $buildfile ] && buildfile=buildhanh
@@ -238,8 +235,7 @@ fi
 [ -z "$TAV_LIBDIR" ] && HANH_LIBDIR="/usr/lib /usr/lib64 /lib /lib64"
 
 if [ ! -f $buildfile ]; then
- echo ">>> Build file not found!"
- exit 1
+ err "Build file not found!"
 fi
 
 source $buildfile
@@ -260,12 +256,12 @@ grep_pkg=$(cat $buildfile | grep make-pkg | cut -d "(" -f 1)
 # Execute the functions above with options
 
 if [ "$clean" == 1 ]; then
-printf "\n>> Cleaning necessary directories..."
+info "Cleaning necessary directories..."
 no_unpack=0
 rm -rf $pkgdir $workdir
 fi
 
-printf "\n>> Creating necessary directories if needed..."
+info "Creating necessary directories if needed..."
 mkdir -p $pkgdir $workdir
 
 file_check
@@ -277,22 +273,19 @@ file_check
 [ -z "$grep_compile" ] && repack=1
 
 if [ "$no_unpack" == 0 ]; then
- clean_line
- printf \n">> Unpacking sources..."
+ info "Unpacking sources..."
  unpack-pkg
 fi
 
 if [ "$repack" == 0 ]; then
- printf "\n>> Compiling sources..."
+ info "Compiling sources..."
  compile-pkg
 fi
 
-for repack_command in  $grep_pkg; do
+for repack_command in $grep_pkg; do
  rm -rf $pkgdir && mkdir -p $pkgdir
- clean_line
- printf "\n>> Making package: $name... \n"
+ info "Making package: $name..."
  eval $repack_command
  archive_pkg
 done
 
-printf "\n>> Process executed suscessfully! "

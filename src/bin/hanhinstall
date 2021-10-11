@@ -27,7 +27,7 @@ printf "\n>>> $1\n" && exit 1
 help() {
 echo ">> Printing help"
 echo "hanhinstall - Hanh Linux packages installer"
-echo "Usage: hanhinstall [options] [action] package"
+echo "Usage: tavinstall [options] [action] package"
 echo "Action"
 echo "--sync                                    Sync database from remote"
 echo "--search                                  Search for packages"
@@ -65,7 +65,7 @@ lib_check(){
    for search_dir in $HANH_LIBDIR; do
     [ -f "$search_dir/$need_lib" ] && found_lib=1
    done
-   [ -z "$found_lib" ] && err ">>> Library $need_lib not found!"
+   [ -z "$found_lib" ] && err "Library $need_lib not found!"
   done
  fi
 
@@ -124,7 +124,7 @@ printf "\n"
 info "(0%%)__ Cleaning old database..."
 rm -rf *
 ## Download the database for the server
-clean_line
+
 info "(20%%)_ Working with database..."
 for repo_name in $all_repo; do
  repo=$(basename $repo_name)
@@ -163,7 +163,7 @@ else
   done
  done
 fi
-printf "\r>> (100%%)"
+info "(100%%)"
 }
 
 # Function for installing package.
@@ -183,7 +183,6 @@ for pkg in $package; do
 ### Disable dependencies check if the --disable-depends option is enabled
 
  if [ "$check_deps" == 1 ]; then
-  clean_line
   info "(5%%)__ Checking dependencies..."
   depends_check
   lib_check
@@ -194,7 +193,6 @@ for pkg in $package; do
  conflicts_func
 
 ### Get package info directory
- clean_line
  info "(15%%)_ Getting infomation directory..." 
  tar -C $TEMP -xf $pkg $pkg_infodir
 
@@ -203,8 +201,7 @@ for pkg in $package; do
  newfile=$TEMP/$pkg_infodir/filelist 
 
  if [ -f "$oldfile" ]; then
-  clean_line
-  info ">> (20%%)_ Filtering old files..."
+  info "(20%%)_ Filtering old files..."
   difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/< //g')
   for files in $difffiles; do 
    rm -rvf $sysroot/$files
@@ -212,7 +209,6 @@ for pkg in $package; do
  fi
 
 ### Unpack the package to $sysroot
- clean_line
  info "(30%%)_ Installing $name..."
  tar -C $sysroot -xf $pkg
  rm -rf $sysroot/pre-install $TEMP
@@ -234,7 +230,6 @@ for pkg_dir in $package; do
  source $installed_pkg_header
 
 ### Remove files (folders will be ignored because it may delete the necessary folders)
- clean_line
  info "(10%%)_ Removing $pkg_dir..."
  cd $sysroot
  rm -f $(cat $installed_pkg_filelist) > /dev/null 2>&1 || true
@@ -244,7 +239,7 @@ for pkg_dir in $package; do
  rm -rf $installed_infodir/$remove_conflict
  done 
  rm -rf $installed_infodir/$name 
- info "\r>> (100%%)"
+ info "(100%%)"
 
 done
 }
@@ -254,17 +249,15 @@ printf "\n"
 info "(0%%)__ Preparing..."
 cd $build_dir
 parent_dir=$(pwd)
-clean_line
 info "(5%%)__ Building packages..."
 for build_pkg in *; do
  [ -d "$parent_dir"/"$build_pkg" ] && cd $parent_dir/$build_pkg && hanhbuild --disable-depends
 done
-clean_line
-info ">> (80%%)_ Moving packages to all_packages directory..."
+info "(80%%)_ Moving packages to all_packages directory..."
 cd $parent_dir
 mkdir -p all_packages
 mv */*.hanhbuild.tar.gz all_packages/
-info "\r>> (100%%)"
+info "(100%%)"
 }
 
 printf "<< Executing command... \n"
@@ -306,16 +299,16 @@ done
 source $config
 
 [ ! -z "$override_downloader" ] && downloader="$override_downloader"
-[ -z "$downloader" ] && err "Download command not found! Exiting..."
+[ -z "$downloader" ] && err "Download command not found! Exiting..." && exit 127
 
-[ ! -z "$mirror_dir" ] && [ ! -d "$mirror_dir" ] && err "Mirror file not found! Exiting..."
+[ ! -z "$mirror_dir" ] && [ ! -d "$mirror_dir" ] && err "Mirror directory not found! Exiting..."
 [ -z "$mirror_dir" ] && mirror_dir="CONFDIR/etc/hanhmirror.d"
 
 if [ ! -z "$override_sysroot" ]; then
- [ ! -d "$override_sysroot" ] && err ">>> $override_sysroot not found! Exiting..."
+ [ ! -d "$override_sysroot" ] && err "$override_sysroot not found! Exiting..."
  sysroot=$override_sysroot
 fi	
-[ -z "$sysroot" ] && sysroot="SYSROOT"
+[ -z "$sysroot" ] && sysroot="SYSROOT/"
 
 [ -z "$HANH_LIBDIR" ] && HANH_LIBDIR="/lib /lib64 /usr/lib /usr/lib64"
 

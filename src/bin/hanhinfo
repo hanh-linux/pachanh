@@ -7,14 +7,14 @@ trap func_exit EXIT
 
 # Exit function
 func_exit() {
-printf "<< Exiting\n"
+printf "\n"
 }
 
 
 # Function for printing help
 help() {
 echo "hanhinfo - Hanh Linux installed packages search tool"
-echo "Usage: tavinfo [options] [package]"
+echo "Usage: hanhinfo [options] [package]"
 echo "Options"
 echo "--help                                    Print this message"
 echo "--version                                 Print version"
@@ -25,6 +25,14 @@ echo "For any questions, please consider asking on GitHub: https://github.com/ha
 exit
 }
 
+info() {
+printf "\n>> $1"
+}
+
+err() {
+printf "\n>>> $1" && exit 1
+}
+
 # Function for searching packages
 search() {
 for pkg in $package; do
@@ -32,20 +40,19 @@ for pkg in $package; do
  if [[ -d $infodir/$pkg ]]; then
 ### Check if the specified information file exists
   for file in $files; do
-   [ ! -f $infodir/$pkg/$file ] && echo ">>> Specified file not found! Exiting..." && exit
-   echo ">> Printing $file..."
+   [ ! -f $infodir/$pkg/$file ] && err "Specified file not found! Exiting..."
+   info "Printing $file..."
    cat $infodir/$pkg/$file
   done
  else
-  echo ">>> Package not found! Exiting..."
-  exit
+  err "Package not found! Exiting..."
  fi
 done
 }
 
 # Get the command line
 command="$*"
-[ -z "$command" ] && echo ">>> No package specified! Please use 'tavinfo --help' for more information" && exit
+[ -z "$command" ] && err "No package specified! Please use 'hanhinfo --help' for more information"
 
 # Parse the command line
 for x in $command; do
@@ -63,12 +70,12 @@ esac
 done
 
 # Get some variables
-[ ! -z "$config" ] && [ ! -f "$config" ] && echo ">>> Configuration file not found!" && exit 1
+[ ! -z "$config" ] && [ ! -f "$config" ] && err "Configuration file not found!" 
 [ -z "$config" ] && config="CONFDIR/etc/hanh.conf"
 source $config
 
 if [ ! -z "$override_sysroot" ]; then 
- [ ! -d "$override_sysroot" ] && echo ">>> $override_sysroot not found!" && exit 1
+ [ ! -d "$override_sysroot" ] && err "$override_sysroot not found!" && exit 1
  sysroot=$override_sysroot
 fi
 [ -z "$sysroot" ] && sysroot="SYSROOT/"
