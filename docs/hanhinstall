@@ -1,0 +1,21 @@
+hanhinstall - pachanh packages installer
+Usage: hanhinstall [options] [action] package
+
+Available actions:
+--sync                                    Sync database from remote
+--install                                 Install packages <file>
+--remove                                  Remove packages
+--gen-skel=<path>                         Generate the packages build files
+--build=<directory>                       Build all available build files inside a directory
+Available options:
+--help                                    Print this message"
+--version                                 Print version"
+--config=<path to config>                 Use a alternative config"
+--sysroot=<path>                          Change root directory
+--downloader=<command>                    Use another download command
+--mirror-dir=<path>                       Use specified mirror directory
+--disable-depends                         Disable dependencies check
+
+Notes: 
+--install option cannot be used with --remove option.
+--build=<directory> won't build specified packages. Remove unnecessary packages first.

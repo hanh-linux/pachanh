@@ -1,4 +1,4 @@
-hanhbuild - Hanh Linux packages builder
+hanhbuild - pachanh package builder
 
 ============================================================
 Usage: hanhbuild [options] 
@@ -27,6 +27,8 @@ Available options:
      Disable downloading sources
 --disable-depends 
      Skip dependencies check
+
+The binary will check the dependencies, required binaries and libraries. Then it will fetch the remote files, run the specified functions in the build file and create a package archive from the $pkgdir
 =============================================================
 /etc/hanhbuild.conf
 Available variables: 
@@ -35,4 +37,7 @@ downloader          Download command
 buildfile           Default build file
 HANH_BINDIR         Binary search directories
 HANH_LIBDIR         Library search directories
+hanhdir             build directory
+workdir             compile directory
+pkgdir              package direcotry
 Also, compiling variables such as CFLAGS, CC can be added to this file.

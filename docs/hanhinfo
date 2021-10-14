@@ -1,0 +1,19 @@
+hanhinfo - pachanh local package searcher
+Usage: hanhinfo [option] package
+
+Available options: 
+--help
+     Print help message
+--version
+     Print version
+--config=<path to config>
+     Use a alternative config
+--sysroot=<path to directory>
+     Use a alternative root directory
+--type=[info,filelist,header]
+     See type of information 
+
+The binary will search for installed packages. If one of the packages is not found, the process will exit with error code. Otherwise, it will print the information to the console. 
+- info: Package general information (name, version, description,...).
+- filelist: Package installed files and folders.
+- header: The same as `info`, but use variables and needed for removing packages.
