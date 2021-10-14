@@ -17,6 +17,7 @@ echo "Usage: hanhbuild [options]"
 echo "Options"
 echo "--help                                    Print this message"
 echo "--config=<path to config>                 Use a alternative config"
+echo "--sysroot=<path to dir>                   Use a alternative system root"
 echo "--buildfile=<path to buildfile>           Use a alternative build file"
 echo "--downloader=<command>                    Use command to install"
 echo "--flag=<flag>                             Use build flag (only with compiling)"
@@ -106,7 +107,7 @@ if [ ! -z "$needed" ]; then
  info "Checking files..."
  
  for local_file in $needed; do
-  [ ! -f $hanhdir/$local_file ] && err "File $local_file not found"
+  [ ! -f $hanhdir/$local_file ] && err "File $local_file not found!"
  done
 
  info "Finished files check!"
@@ -236,8 +237,8 @@ fi
 # Check if the build file exists then source the build file
 [ -z $buildfile ] && buildfile=buildhanh
 
-[ -z "$TAV_BINDIR" ] && HANH_BINDIR=$(echo $PATH | sed 's|:| |g')
-[ -z "$TAV_LIBDIR" ] && HANH_LIBDIR="/usr/lib /usr/lib64 /lib /lib64"
+[ -z "$HANH_BINDIR" ] && HANH_BINDIR=$(echo $PATH | sed 's|:| |g')
+[ -z "$HANH_LIBDIR" ] && HANH_LIBDIR="/usr/lib /usr/lib64 /lib /lib64"
 
 if [ ! -f $buildfile ]; then
  err "Build file not found!"

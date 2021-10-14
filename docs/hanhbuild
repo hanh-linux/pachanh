@@ -1,0 +1,38 @@
+hanhbuild - Hanh Linux packages builder
+
+============================================================
+Usage: hanhbuild [options] 
+Available options: 
+--help
+     Print help message
+--config=<path to config>
+     Use a alternative config instead of /etc/hanhbuild.conf
+--buildfile=<path to buildfile>
+     Use a alternative build file instead of buildhanh
+--downloader=<command>
+     Use a command to fetch remote files
+--flag=<flag>
+     Use a build flag (for packages require compiling)
+--sysroot=<path to directory>
+     Use a alternative system root
+--clean
+     Clean current work and package directories
+--no-unpack 
+     Use existing work directory
+--repack
+     Use the existing work directory to create the package
+--no-archive
+     Do not create a archive package after build 
+--no-download
+     Disable downloading sources
+--disable-depends 
+     Skip dependencies check
+=============================================================
+/etc/hanhbuild.conf
+Available variables: 
+sysroot             System root
+downloader          Download command
+buildfile           Default build file
+HANH_BINDIR         Binary search directories
+HANH_LIBDIR         Library search directories
+Also, compiling variables such as CFLAGS, CC can be added to this file.
