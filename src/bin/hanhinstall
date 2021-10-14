@@ -43,7 +43,7 @@ echo "--sysroot=<path>                          Change root directory"
 echo "--downloader=<command>                    Use another download command"
 echo "--mirror-file=<path>                      Use specified mirror file"
 echo "--disable-depends                         Disable dependencies check"
-echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pachanh"
+echo "For any questions, please consider asking on GitHub: https://github.com/hanh-linux/pachanh"
 }
 
 # Function for checking dependencies

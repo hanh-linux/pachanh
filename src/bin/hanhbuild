@@ -19,12 +19,14 @@ echo "--help                                    Print this message"
 echo "--config=<path to config>                 Use a alternative config"
 echo "--buildfile=<path to buildfile>           Use a alternative build file"
 echo "--downloader=<command>                    Use command to install"
+echo "--flag=<flag>                             Use build flag (only with compiling)"
 echo "--clean                                   Clean all current work and package directory"
 echo "--no-unpack                               Use current work directory"
 echo "--repack                                  Make a package using current work directory"
+echo "--no-archive                              Do not create tarball archive"
 echo "--no-download                             Disable download sources"
 echo "--disable-depends                         Skip dependencies check"
-echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pachanh"
+echo "For any questions, please consider asking on GitHub: https://github.com/hanh-linux/pachanh"
 exit
 }
 
@@ -114,10 +116,10 @@ fi
 # Function for package archive
 archive_pkg(){
 
- info "Finishing package..."
+info "Finishing package..."
 
 ## Get some useful variables
- pkg_tarball="$name"-"$ver".hanhbuild.tar.gz
+ pkg_tarball="$name"-"$ver".hanhbuild.tar.xz
  info_dir="$pkgdir/var/lib/pachanh/system"
  info_pkgdir="$info_dir/$name"
  info_file=$info_pkgdir/info
@@ -155,7 +157,7 @@ archive_pkg(){
  cd $pkgdir
  find * | tee $info_filelist > /dev/null 2>&1
 
-## Generate the parent header. This header will be removed after the package installation finish.
+## Generate the parent header. This header will be removed after installing the package.
  info "(20%%)_ Generating header..."
  echo "name=\"$name\"" >> $header
  echo "version=\"$ver\"" >> $header
@@ -167,7 +169,7 @@ archive_pkg(){
 
 ## Compress the package 
  info "(30%%)_ Compressing package..."
- tar -cJf $hanhdir/$pkg_tarball *
+ tar -cjf $hanhdir/$pkg_tarball *
  
  info "(100%%) Package created: $pkg_tarball" 
 }
@@ -188,6 +190,7 @@ repack=0
 download=1
 check_deps=1
 version="0.1"
+pack=1
 
 printf "\n<< Executing command...\n"
 # Get the command line 
@@ -207,7 +210,9 @@ case $x in
 "--clean") clean=1;;
 "--no-unpack") no_unpack=1;;
 "--repack")  no_unpack=1;repack=1;;
+"--no-archive") pack=0;;
 "--version") echo "$version"; exit;;
+"--flag"=*) flag=$(echo "$x" | cut -d "=" -f 2);;
 esac
 
 done
@@ -250,15 +255,23 @@ fi
 
 # Check for available functions
 grep_unpack=$(cat $buildfile | grep unpack-pkg | cut -d "(" -f 1)
-grep_compile=$(cat $buildfile | grep compile-pkg | cut -d "(" -f 1)
+
+if [ ! -z "$flag" ]; then
+ grep_compile=$(cat $buildfile | grep compile-pkg_$flag | cut -d "(" -f 1)
+ [ -z "$grep_compile" ] && err "Flag $flag not found! Exiting..."
+else
+ grep_compile=$(cat $buildfile | grep compile-pkg | cut -d "(" -f 1)
+ [ -z "$grep_compile" ] && repack=1
+fi
+
 grep_pkg=$(cat $buildfile | grep make-pkg | cut -d "(" -f 1)
 
 # Execute the functions above with options
 
 if [ "$clean" == 1 ]; then
-info "Cleaning necessary directories..."
-no_unpack=0
-rm -rf $pkgdir $workdir
+ info "Cleaning necessary directories..."
+ no_unpack=0
+ rm -rf $pkgdir $workdir
 fi
 
 info "Creating necessary directories if needed..."
@@ -279,13 +292,14 @@ fi
 
 if [ "$repack" == 0 ]; then
  info "Compiling sources..."
- compile-pkg
+ eval $grep_compile
 fi
 
-for repack_command in $grep_pkg; do
- rm -rf $pkgdir && mkdir -p $pkgdir
- info "Making package: $name..."
- eval $repack_command
- archive_pkg
-done
-
+if [ "$pack" == 1 ]; then
+ for repack_command in $grep_pkg; do
+  rm -rf $pkgdir && mkdir -p $pkgdir
+  info "Making package: $name..."
+  eval $repack_command
+  archive_pkg
+ done
+fi

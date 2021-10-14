@@ -19,9 +19,9 @@ echo "Options"
 echo "--help                                    Print this message"
 echo "--version                                 Print version"
 echo "--config=<path to config>                 Use a alternative config"
-echo "--type=[info,filelist]                    See type of information"
+echo "--type=[info,filelist,header]             See type of information"
 echo "--sysroot=<path>                          Change root directory"
-echo "For any questions, please consider asking on GitHub: https://github.com/hanhlinux/pachanh"
+echo "For any questions, please consider asking on GitHub: https://github.com/hanh-linux/pachanh"
 exit
 }
 
