@@ -77,6 +77,6 @@ install -Dvm755 bin/hanhinfo $DESTDIR/$PREFIX/bin/hanhinfo
 
 install -Dvm644 etc/hanh.conf $DESTDIR/etc/hanh.conf
 install -Dvm644 etc/hanhbuild.conf $DESTDIR/etc/hanhbuild.conf
-install -Dvm644 etc/hanhmirror.d/package-data $DESTDIR/etc/hanhmirror.d/package-data
+install -Dvm644 etc/hanhmirror.d/core $DESTDIR/etc/hanhmirror.d/core
 
 

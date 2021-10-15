@@ -1,0 +1,310 @@
+#!/bin/bash
+
+set -e
+set -o errtrace
+
+trap func_exit EXIT
+
+# Exit function
+func_exit() {
+printf "\n"
+}
+
+# Help function
+help() {
+echo "hanhbuild - Hanh Linux packages builder"
+echo "Usage: hanhbuild [options]"
+echo "Options"
+echo "--help                                    Print this message"
+echo "--config=<path to config>                 Use a alternative config"
+echo "--sysroot=<path to dir>                   Use a alternative system root"
+echo "--buildfile=<path to buildfile>           Use a alternative build file"
+echo "--downloader=<command>                    Use command to install"
+echo "--flag=<flag>                             Use build flag (only with compiling)"
+echo "--clean                                   Clean all current work and package directory"
+echo "--no-unpack                               Use current work directory"
+echo "--repack                                  Make a package using current work directory"
+echo "--no-archive                              Do not create tarball archive"
+echo "--no-download                             Disable download sources"
+echo "--disable-depends                         Skip dependencies check"
+echo "For any questions, please consider asking on GitHub: https://github.com/hanh-linux/pachanh"
+exit
+}
+
+# Function for cleaning line
+clean_line(){
+printf "\r                                                 "
+}
+
+# Function for printing infomation
+info() {
+clean_line && printf "\r>> $1"
+}
+
+# Function for printing error
+err() {
+printf "\n>>> $1" && exit 1
+}
+
+# Function for dependencies checking
+depends_check() {
+info "Checking dependencies.."
+if [ ! -z "$depends" ]; then
+ for dep in $depends; do
+  if [ ! -d $sysroot/var/lib/pachanh/system/$dep ]; then
+   err "$dep not found! Please install and compile it"
+  fi
+ done
+fi
+}
+
+# Function for working with `contain` line
+contain_work(){
+if [ ! -z "$contain" ]; then
+ for contain_pkg in $contain; do
+  cd $info_dir
+  ln -sf $name $contain_pkg
+ done
+cd $pkgdir
+fi
+}
+
+# Function for working with required buildtime binaries
+bin_check(){
+if [ ! -z "$build_bin" ]; then
+ info "Checking buildtime binaries..."
+
+ for binary in $build_bin; do
+  for search_dir in $HANH_BINDIR; do
+   [ -f $search_dir/$binary ] && final_binary=1 
+  done
+ [ -z "$final_binary" ] && err "Binary $binary not found!"
+ done
+
+ info "Finished binaries check"
+fi
+}
+
+# Function for working with required runtime libraries
+lib_check() {
+if [ ! -z "$lib" ]; then 
+ info "Checking runtime libraries..."
+ 
+ for library in $lib; do
+  for search_dir in $HANH_LIBDIR; do
+   [ -f "$search_dir/$library" ] && final_lib=1
+  done
+  [ -z "$final_lib" ] && err "Library $library not found!"
+ done
+
+ info "Finished libraries check"
+fi
+}
+
+# Function for checking required files for building packages
+file_check() {
+if [ ! -z "$needed" ]; then 
+ info "Checking files..."
+ 
+ for local_file in $needed; do
+  [ ! -f $hanhdir/$local_file ] && err "File $local_file not found!"
+ done
+
+ info "Finished files check!"
+fi
+}
+
+# Function for package archive
+archive_pkg(){
+
+info "Finishing package..."
+
+## Get some useful variables
+ pkg_tarball="$name"-"$ver".hanhbuild.tar.xz
+ info_dir="$pkgdir/var/lib/pachanh/system"
+ info_pkgdir="$info_dir/$name"
+ info_file=$info_pkgdir/info
+ info_filelist=$info_pkgdir/filelist
+ header=$pkgdir/pre-install
+ local_header=$info_pkgdir/header
+
+## Generate package infomation and local header
+ printf "\n"
+ info "(0%%)__ Generating information..."
+
+ mkdir -p $info_pkgdir
+ echo "Name: $name" >> $info_file
+ echo "Version: $ver" >> $info_file
+ echo "Description: $desc" >> $info_file
+ echo "Depends: $depends $lib" >> $info_file
+ echo "Contain: $contain" >> $info_file 
+ echo "Homepage: $home" >> $info_file
+
+ echo "name=\"$name\"" >> $local_header
+ echo "version=\"$ver\"" >> $local_header
+ echo "desc=\"$desc\"" >> $local_header
+ echo "depends=\"$depends\"" >> $local_header
+ echo "lib=\"$lib\"" >> $local_header
+ echo "contain=\"$contain\"" >> $local_header
+ echo "pkg_infodir=\"var/lib/pachanh/system/$name\"" >> $local_header 
+
+## Work with contain line 
+ info "(5%%)__ Check if the package contain smaller packages..."
+ contain_work
+
+## Generate the filelist.
+ info "(10%%)_ Generating filelist..."
+
+ cd $pkgdir
+ find * | tee $info_filelist > /dev/null 2>&1
+
+## Generate the parent header. This header will be removed after installing the package.
+ info "(20%%)_ Generating header..."
+ echo "name=\"$name\"" >> $header
+ echo "version=\"$ver\"" >> $header
+ echo "desc=\"$desc\"" >> $header
+ echo "depends=\"$depends\"" >> $header
+ echo "lib=\"$lib\"" >> $header
+ echo "contain=\"$contain\"" >> $header
+ echo "pkg_infodir=\"var/lib/pachanh/system/$name\"" >> $header 
+
+## Compress the package 
+ info "(30%%)_ Compressing package..."
+ tar -cjf $hanhdir/$pkg_tarball *
+ 
+ info "(100%%) Package created: $pkg_tarball" 
+}
+
+# Function for downloading source
+download_source(){
+ if [ ! -z "$sources" ]; then
+ info "Sources detected! Downloading..."
+  for need_file in $sources; do
+   eval $downloader $need_file
+  done
+ fi
+}
+
+# Export some necessary variables
+no_unpack=0
+repack=0
+download=1
+check_deps=1
+version="0.1"
+pack=1
+
+printf "<< Executing command...\n"
+# Get the command line 
+command="$*"
+
+# Parse the command line
+for x in $command; do
+
+case $x in
+"--help") help; exit;;
+"--config"=*) config=$(echo "$x" | cut -d "=" -f 2);;
+"--buildfile"=*) buildfile=$(echo "$x" | cut -d "=" -f 2);;
+"--no-download") download=0;;
+"--disable-depends") check_deps=0;;
+"--downloader"=*) override_downloader=$(echo "$x" | cut -d "=" -f 2);;
+"--sysroot="*) override_sysroot=$(echo "$x" | cut -d "=" -f 2);;
+"--clean") clean=1;;
+"--no-unpack") no_unpack=1;;
+"--repack")  no_unpack=1;repack=1;;
+"--no-archive") pack=0;;
+"--version") echo "$version"; exit;;
+"--flag"=*) flag=$(echo "$x" | cut -d "=" -f 2);;
+"--show-flags") show_flags=1;;
+"--"*) printf "\n>>> Unknown option: $x. Ignoring..."
+esac
+
+done
+
+# Source the configuration file
+[ ! -z "$config" ] && [ ! -f "$config" ] && err "Configuration file not found!"
+[ -z "$config" ] && config="/home/user/kun/etc/hanhbuild.conf"
+source $config
+
+if [ ! -z "$override_sysroot" ]; then
+ [ ! -d "$override_sysroot" ] && err "$override_sysroot not found! Exiting..."
+ sysroot=$override_sysroot
+fi	
+[ -z "$sysroot" ] && sysroot="/home/user/kun/"
+
+
+# Check if the download command is available.
+[ ! -z "$override_downloader" ] && downloader="$override_downloader"
+[ -z "$downloader" ] && err "Download command not found"
+
+# Check if the build file exists then source the build file
+[ -z $buildfile ] && buildfile=buildhanh
+
+[ -z "$HANH_BINDIR" ] && HANH_BINDIR=$(echo $PATH | sed 's|:| |g')
+[ -z "$HANH_LIBDIR" ] && HANH_LIBDIR="/usr/lib /usr/lib64 /lib /lib64"
+
+if [ ! -f $buildfile ]; then
+ err "Build file not found!"
+fi
+
+source $buildfile
+
+# By default, check for dependencies. If --disable-depends is enabled, skip this step. 
+if [ "$check_deps" == 1 ]; then 
+depends_check
+bin_check
+lib_check
+printf "\n"
+fi
+
+# Check for available functions
+grep_unpack=$(cat $buildfile | grep unpack-pkg | cut -d "(" -f 1)
+
+if [ ! -z "$flag" ]; then
+ grep_compile=$(cat $buildfile | grep compile-pkg_$flag | cut -d "(" -f 1)
+ [ -z "$grep_compile" ] && err "Flag $flag not found! Exiting..."
+else
+ grep_compile=$(cat $buildfile | grep compile-pkg | cut -d "(" -f 1)
+ [ -z "$grep_compile" ] && repack=1
+fi
+
+grep_pkg=$(cat $buildfile | grep make-pkg | cut -d "(" -f 1)
+
+# Execute the functions above with options
+
+[ "$show_flags" == 1 ] && info "Available flags are: $build_flag"  && exit  
+
+if [ "$clean" == 1 ]; then
+ info "Cleaning necessary directories..."
+ no_unpack=0
+ rm -rf $pkgdir $workdir
+fi
+
+info "Creating necessary directories if needed..."
+mkdir -p $pkgdir $workdir
+
+file_check
+
+[ "$download" == 1 ] && download_source
+
+[ -z "$grep_unpack" ] && no_unpack=1 
+
+[ -z "$grep_compile" ] && repack=1
+
+if [ "$no_unpack" == 0 ]; then
+ info "Unpacking sources..."
+ unpack-pkg
+fi
+
+if [ "$repack" == 0 ]; then
+ info "Compiling sources..."
+ eval $grep_compile
+fi
+
+if [ "$pack" == 1 ]; then
+ for repack_command in $grep_pkg; do
+  rm -rf $pkgdir && mkdir -p $pkgdir
+  info "Making package: $name..."
+  eval $repack_command
+  archive_pkg
+ done
+fi
