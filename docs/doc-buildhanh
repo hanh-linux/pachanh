@@ -14,6 +14,7 @@ build_bin="binary1 binary2 binary3"
 lib="lib1.so lib2.a lib3.o"
 sources="https://www.example.org/$name-$ver.tar.gz"
 needed="$name-$ver.tar.gz file1"
+build_flag=""
 
 unpack-pkg(){
 cd $workdir
@@ -45,6 +46,7 @@ build_bin                        Binaries for building package
 lib                              Package runtime libraries
 sources                          Remote source files
 needed                           Necessary files
+build_flag                       Information for available build flags
 hanhdir,workdir,pkgdir           Check out hanhbuild in the docs 
 
 Explaining functions: 
