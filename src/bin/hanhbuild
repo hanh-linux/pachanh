@@ -214,6 +214,7 @@ case $x in
 "--no-archive") pack=0;;
 "--version") echo "$version"; exit;;
 "--flag"=*) flag=$(echo "$x" | cut -d "=" -f 2);;
+"--show-flags") show_flags=1;;
 esac
 
 done
@@ -268,6 +269,8 @@ fi
 grep_pkg=$(cat $buildfile | grep make-pkg | cut -d "(" -f 1)
 
 # Execute the functions above with options
+
+[ "$show_flags" == 1 ] && info "Available flags are: $build_flag"  && exit  
 
 if [ "$clean" == 1 ]; then
  info "Cleaning necessary directories..."

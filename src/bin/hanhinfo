@@ -13,6 +13,7 @@ printf "\n"
 
 # Function for printing help
 help() {
+echo ">> Printing help"
 echo "hanhinfo - Hanh Linux installed packages search tool"
 echo "Usage: hanhinfo [options] [package]"
 echo "Options"
@@ -51,6 +52,9 @@ done
 }
 
 # Get the command line
+
+printf "\n<< Executing command\n"
+
 command="$*"
 [ -z "$command" ] && err "No package specified! Please use 'hanhinfo --help' for more information"
 
