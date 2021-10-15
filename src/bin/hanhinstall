@@ -285,7 +285,7 @@ case $x in
 "--install")		install=1;;
 "--remove")		remove=1;;
 "--version")            echo "$version";exit;;
-"--"*)			echo ">>> Unknown options: $x. Ignoring...";;
+"--"*)			printf "\n>>> Unknown options: $x. Ignoring...";;
 *)			package="$package $x";;	
 esac
 

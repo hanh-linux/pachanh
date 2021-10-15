@@ -193,7 +193,7 @@ check_deps=1
 version="0.1"
 pack=1
 
-printf "\n<< Executing command...\n"
+printf "<< Executing command...\n"
 # Get the command line 
 command="$*"
 
@@ -215,6 +215,7 @@ case $x in
 "--version") echo "$version"; exit;;
 "--flag"=*) flag=$(echo "$x" | cut -d "=" -f 2);;
 "--show-flags") show_flags=1;;
+"--"*) printf "\n>>> Unknown option: $x. Ignoring..."
 esac
 
 done

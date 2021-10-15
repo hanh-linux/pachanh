@@ -53,7 +53,7 @@ done
 
 # Get the command line
 
-printf "\n<< Executing command\n"
+printf "<< Executing command\n"
 
 command="$*"
 [ -z "$command" ] && err "No package specified! Please use 'hanhinfo --help' for more information"
@@ -67,7 +67,7 @@ case $x in
 "--type"=*) 	files=$(echo "$x" | cut -d "=" -f2 | sed 's/,/ /g');;
 "--sysroot"=*) 	override_sysroot=$(echo "$x" | cut -d "=" -f2);;
 "--version")    echo "$version";exit;;
---*) 		echo ">>> Unknown option: $x. Ignoring...";;
+--*) 		printf "\n>>> Unknown option: $x. Ignoring...";;
 *) 		package="$package $x";;
 esac
 
