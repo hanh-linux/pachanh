@@ -139,6 +139,7 @@ info "Finishing package..."
  echo "Depends: $depends $lib" >> $info_file
  echo "Contain: $contain" >> $info_file 
  echo "Homepage: $home" >> $info_file
+ echo "License: $license" >> $info_file
 
  echo "name=\"$name\"" >> $local_header
  echo "version=\"$ver\"" >> $local_header
