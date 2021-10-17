@@ -156,10 +156,12 @@ else
   [ ! -d "$dbdir/$pkg_build_dir" ] && err "Package $pkg_build_dir not found! Exiting..."
   cp -r $dbdir/$pkg_build_dir .
   source $dbdir/$pkg_build_dir/buildhanh 
-  for dep in $depends; do 
-   [ ! -d $dbdir/$dep ] && err "Depend $dep not found! Exiting..."
-   [ -d $dbdir/$dep ] && hanhinstall --gen-skel=. $dep 
-  done
+  if [ "$check_deps" == 1 ]; then
+   for dep in $depends; do 
+    [ ! -d $dbdir/$dep ] && err "Depend $dep not found! Exiting..."
+    [ -d $dbdir/$dep ] && hanhinstall --gen-skel=. $dep 
+   done
+  fi
  done
 fi
 info "(100%%)"
