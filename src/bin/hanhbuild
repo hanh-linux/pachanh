@@ -225,6 +225,7 @@ done
 [ ! -z "$config" ] && [ ! -f "$config" ] && err "Configuration file not found!"
 [ -z "$config" ] && config="CONFDIR/etc/hanhbuild.conf"
 source $config
+export $USE_FLAGS
 
 if [ ! -z "$override_sysroot" ]; then
  [ ! -d "$override_sysroot" ] && err "$override_sysroot not found! Exiting..."
