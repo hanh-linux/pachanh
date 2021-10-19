@@ -201,7 +201,7 @@ no_unpack=0
 repack=0
 download=1
 check_deps=1
-version="0.1"
+version="1.1"
 pack=1
 
 printf "<< Executing command...\n"

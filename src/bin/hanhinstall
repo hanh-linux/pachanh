@@ -288,7 +288,7 @@ done
 printf "<< Executing command... \n"
 # Get some variables
 check_deps=1
-version="1.0"
+version="1.1"
 files="info header filelist"
 
 # Get the executed command. If the command comes with no more option, print the help.

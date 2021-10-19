@@ -13,6 +13,8 @@ depends="depend1 depend2 depend3"
 build_bin="binary1 binary2 binary3"
 lib="lib1.so lib2.a lib3.o"
 sources="https://www.example.org/$name-$ver.tar.gz"
+contain="example-smaller"
+
 needed="$name-$ver.tar.gz file1"
 build_flag=""
 
@@ -47,6 +49,7 @@ lib                              Package runtime libraries
 sources                          Remote source files
 needed                           Necessary files
 build_flag                       Information for available build flags
+ignore_files                     Ignore files 
 hanhdir,workdir,pkgdir           Check out hanhbuild in the docs 
 
 Explaining functions: 
