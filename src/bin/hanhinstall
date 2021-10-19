@@ -7,7 +7,7 @@ trap func_exit EXIT
 
 # Exit function
 func_exit() {
-printf "<< Exiting...\n"
+printf "\n"
 }
 
 # Function for cleaning line
@@ -32,6 +32,7 @@ echo "Action"
 echo "--sync                                    Sync database from remote"
 echo "--install                                 Install packages <file>"
 echo "--remove                                  Remove packages"
+echo "--search                                  Search for installed packages"
 echo "--gen-skel=<path>                         Generate the packages build files"
 echo "--build=<directory>                       Build all available build files inside a directory"
 echo "Options"
@@ -40,7 +41,8 @@ echo "--version                                 Print version"
 echo "--config=<path to config>                 Use a alternative config"
 echo "--sysroot=<path>                          Change root directory"
 echo "--downloader=<command>                    Use another download command"
-echo "--mirror-dir=<path>                      Use specified mirror directory"
+echo "--mirror-dir=<path>                       Use specified mirror directory"
+echo "--search-type=[info,filelist,header]      Specify file(s) to search"
 echo "--disable-depends                         Disable dependencies check"
 echo "For any questions, please consider asking on GitHub: https://github.com/hanh-linux/pachanh"
 }
@@ -212,6 +214,10 @@ for pkg in $package; do
 ### Unpack the package to $sysroot
  info "(30%%)_ Installing $name..."
  tar -C $sysroot -xf $pkg
+ info "(90%%)_ Finishing packages..."
+ for ignore in $ignore_files; do
+ [ ! -f "$sysroot/$ignore" ] && mv -v $sysroot/$ignore.newfile $sysroot/$ignore
+ done
  rm -rf $sysroot/pre-install $TEMP
  info "(100%%)"
 
@@ -261,10 +267,29 @@ mv */*.hanhbuild.tar.gz all_packages/
 info "(100%%)"
 }
 
+search() {
+for pkg in $package; do
+### Check if the package is installed
+ if [[ -d $installed_infodir/$pkg ]]; then
+### Check if the specified information file exists
+  for file in $files; do
+   [ ! -f $installed_infodir/$pkg/$file ] && err "Specified file not found! Exiting..."
+   [ ! -f $installed_infodir/$pkg/$file ] && err "Specified file not found! Exiting..."
+   info "Printing $file..."
+   cat $installed_infodir/$pkg/$file
+  done
+ else
+  err "Package not found! Exiting..."
+ fi
+done
+}
+
+
 printf "<< Executing command... \n"
 # Get some variables
 check_deps=1
 version="1.0"
+files="info header filelist"
 
 # Get the executed command. If the command comes with no more option, print the help.
 command="$*"
@@ -279,6 +304,7 @@ case $x in
 "--sysroot"=*) 		override_sysroot=$(echo "$x" | cut -d "=" -f 2);;
 "--downloader"=*) 	override_downloader=$(echo "$x" | cut -d "=" -f 2);;
 "--mirror-dir"=*)       mirror_dir=$(echo "$x" | cut -d "=" -f 2);;
+"--search-type"=*)      files=$(echo "$x" | cut -d "=" -f 2 | sed 's/,/ /g');;
 "--disable-depends")    check_deps=0;;
 "--gen-skel"=*)         gen_skel=1;dir_skel=$(echo "$x" | cut -d "=" -f 2);;
 "--sync")		sync=1;;
@@ -309,7 +335,7 @@ if [ ! -z "$override_sysroot" ]; then
  [ ! -d "$override_sysroot" ] && err "$override_sysroot not found! Exiting..."
  sysroot=$override_sysroot
 fi	
-[ -z "$sysroot" ] && sysroot="SYSROOT/"
+[ -z "$sysroot" ] && sysroot="SYSROOT"
 
 [ -z "$HANH_LIBDIR" ] && HANH_LIBDIR="/lib /lib64 /usr/lib /usr/lib64"
 
@@ -341,3 +367,5 @@ fi
 [ "$remove" == 1 ] && remove_pkg
 
 [ "$all_build" == 1 ] && build_all
+
+[ "$search" == 1 ] && search

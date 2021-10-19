@@ -114,6 +114,13 @@ if [ ! -z "$needed" ]; then
 fi
 }
 
+check_ignore() {
+cd $pkgdir
+for ignore in $ignore_files; do
+ mv $ignore $ignore.newfile
+done
+}
+
 # Function for package archive
 archive_pkg(){
 
@@ -147,11 +154,13 @@ info "Finishing package..."
  echo "depends=\"$depends\"" >> $local_header
  echo "lib=\"$lib\"" >> $local_header
  echo "contain=\"$contain\"" >> $local_header
+ echo "ignore_files=\"$ignore_files\"" >> $local_header
  echo "pkg_infodir=\"var/lib/pachanh/system/$name\"" >> $local_header 
 
 ## Work with contain line 
  info "(5%%)__ Check if the package contain smaller packages..."
  contain_work
+ check_ignore
 
 ## Generate the filelist.
  info "(10%%)_ Generating filelist..."
@@ -167,6 +176,7 @@ info "Finishing package..."
  echo "depends=\"$depends\"" >> $header
  echo "lib=\"$lib\"" >> $header
  echo "contain=\"$contain\"" >> $header
+ echo "ignore_files=\"$ignore_files\"" >> $header
  echo "pkg_infodir=\"var/lib/pachanh/system/$name\"" >> $header 
 
 ## Compress the package 
