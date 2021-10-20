@@ -8,7 +8,7 @@ The build file will have structure like this.
 name=example
 ver=version
 desc="Example package description"
-homepage="https://www.example.org/"
+home="https://www.example.org/"
 depends="depend1 depend2 depend3"
 build_bin="binary1 binary2 binary3"
 lib="lib1.so lib2.a lib3.o"
@@ -42,7 +42,7 @@ Explaining variables:
 name                             Package name
 ver                              Package version
 desc                             Package description
-homepage                         Package homepage
+home                             Package homepage
 depends                          Package runtime dependencies
 build_bin                        Binaries for building package
 lib                              Package runtime libraries

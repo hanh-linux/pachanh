@@ -294,9 +294,9 @@ fi
 info "Creating necessary directories if needed..."
 mkdir -p $pkgdir $workdir
 
-file_check
-
 [ "$download" == 1 ] && download_source
+
+file_check
 
 [ -z "$grep_unpack" ] && no_unpack=1 
 
