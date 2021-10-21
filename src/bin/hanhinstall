@@ -66,8 +66,7 @@ lib_check(){
    for search_dir in $HANH_LIBDIR; do
     [ -f "$search_dir/$need_lib" ] && found_lib=1
    done
-   [ -z "$found_lib" ] && err "Library $need_lib not found!" 
-   continue
+   [ -z "$found_lib" ] && err "Library $need_lib not found!"
   done
  fi
 
@@ -274,7 +273,8 @@ for pkg in $package; do
  if [[ -d $installed_infodir/$pkg ]]; then
 ### Check if the specified information file exists
   for file in $files; do
-   [ ! -f $installed_infodir/$pkg/$file ] && err "Specified file not found! Exiting..." 
+   [ ! -f $installed_infodir/$pkg/$file ] && err "Specified file not found! Exiting..."
+   [ ! -f $installed_infodir/$pkg/$file ] && err "Specified file not found! Exiting..."
    info "Printing $file..."
    cat $installed_infodir/$pkg/$file
   done
