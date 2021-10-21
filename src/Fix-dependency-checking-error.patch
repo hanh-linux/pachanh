@@ -1,0 +1,22 @@
+--- hanhinstall	2021-10-21 16:40:29.481043254 +0700
++++ hanhinstall1	2021-10-21 16:40:22.004454582 +0700
+@@ -66,7 +66,8 @@
+    for search_dir in $HANH_LIBDIR; do
+     [ -f "$search_dir/$need_lib" ] && found_lib=1
+    done
+-   [ -z "$found_lib" ] && err "Library $need_lib not found!"
++   [ -z "$found_lib" ] && err "Library $need_lib not found!" 
++   continue
+   done
+  fi
+ 
+@@ -273,8 +274,7 @@
+  if [[ -d $installed_infodir/$pkg ]]; then
+ ### Check if the specified information file exists
+   for file in $files; do
+-   [ ! -f $installed_infodir/$pkg/$file ] && err "Specified file not found! Exiting..."
+-   [ ! -f $installed_infodir/$pkg/$file ] && err "Specified file not found! Exiting..."
++   [ ! -f $installed_infodir/$pkg/$file ] && err "Specified file not found! Exiting..." 
+    info "Printing $file..."
+    cat $installed_infodir/$pkg/$file
+   done

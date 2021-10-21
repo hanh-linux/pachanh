@@ -1,6 +1,4 @@
-clean_line(){
-printf "\r                                                                                            "
-}
+workdir=$(pwd)
 
 help() {
 echo "Available options:"
@@ -33,9 +31,7 @@ recommended_command="wget"
 
 printf "\n"
 for x in $needed_command; do
-clean_line
-printf "\r>> Checking if necessary command $x is found... "
-sleep 0.5s
+printf "\nChecking if necessary command $x is found... "
 if ! command -v $x &> /dev/null; then
  printf "not found"
  printf "\n>>> Command $x is not found! Aborting...\n"
@@ -43,27 +39,25 @@ if ! command -v $x &> /dev/null; then
 else
  printf "found"
 fi
-sleep 0.5s
 done
-printf "\n>> Done."
-
-printf "\n"
 for x in $recommended_command; do
-clean_line
-printf "\r>> Checking if recommended command $x is found... "
-sleep 0.5s
+printf "\nChecking if recommended command $x is found... "
 if ! command -v $x &> /dev/null; then
 printf "not found"
 printf "\n>> Command $x is recommended to be installed on your system"
 else
 printf "found"
 fi
-sleep 0.5s
 done
 printf "\n>> Done"
 printf "\n>> Installing pachanh... \n"
 
+cd $workdir/src/bin 
+./fast-patch
+ 
+cd $workdir
 cp -r src/{bin,etc} .
+rm -rf bin/fast-patch
 
 sed "s|CONFDIR|$CONFDIR|g" -i bin/hanhinstall bin/hanhbuild
 sed "s|SYSROOT|$SYSROOT|g" -i bin/hanhinstall bin/hanhbuild
