@@ -16,7 +16,7 @@ eval $command
 [ -z "$CONFDIR" ] && CONFDIR=$DESTDIR
 [ -z "$SYSROOT" ] && SYSROOT=$DESTDIR
 
-
+touch .install
 echo "<< pachanh install script"
 echo ">> Summary"
 echo "Destdir=$DESTDIR"
@@ -56,13 +56,15 @@ cd $workdir/src/bin
 ./fast-patch
  
 cd $workdir
-cp -r src/{bin,etc} .
+cp -r src/bin .
+cp -r src/etc .
 rm -rf bin/fast-patch
 
 sed "s|CONFDIR|$CONFDIR|g" -i bin/hanhinstall bin/hanhbuild
 sed "s|SYSROOT|$SYSROOT|g" -i bin/hanhinstall bin/hanhbuild
 
-install -dvm755 $DESTDIR/$PREFIX/var/lib/pachanh/{remote,system}
+install -dvm755 $DESTDIR/var/lib/pachanh/remote
+install -dvm755 $DESTDIR/var/lib/pachanh/system
 install -dvm755 $DESTDIR/$PREFIX/etc/hanhmirror.d/
 
 install -Dvm755 bin/hanhinstall $DESTDIR/$PREFIX/bin/hanhinstall
