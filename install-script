@@ -16,7 +16,7 @@ eval $command
 [ -z "$CONFDIR" ] && CONFDIR=$DESTDIR
 [ -z "$SYSROOT" ] && SYSROOT=$DESTDIR
 
-touch .install
+touch .patched
 echo "<< pachanh install script"
 echo ">> Summary"
 echo "Destdir=$DESTDIR"
@@ -26,7 +26,7 @@ echo "Configuration directory=$CONFDIR"
 echo -ne "\n"
 
 echo ">> Checking requirements..."
-needed_command="install sed rm printf exit echo source case for if tee find tar gzip mkdir eval cat [ diff sh readlink ln bash"
+needed_command="install sed rm printf exit echo source case for if tee find tar gzip mkdir eval cat [ diff sh readlink ln bash patch"
 recommended_command="wget"
 
 printf "\n"
@@ -53,7 +53,7 @@ printf "\n>> Done"
 printf "\n>> Installing pachanh... \n"
 
 cd $workdir/src/bin 
-./fast-patch
+[ ! -f $workdir/.patched ] && ./fast-patch
  
 cd $workdir
 cp -r src/bin .
