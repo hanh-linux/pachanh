@@ -1,0 +1,19 @@
+--- hanhbuild	2021-10-23 10:03:12.618583073 +0700
++++ hanhbuild1	2021-10-23 10:05:46.808584356 +0700
+@@ -271,13 +271,13 @@
+ fi
+ 
+ # Check for available functions
+-grep_unpack=$(cat $buildfile | grep unpack-pkg | cut -d "(" -f 1)
++grep_unpack=$(cat $buildfile | grep -w unpack-pkg | cut -d "(" -f 1)
+ 
+ if [ ! -z "$flag" ]; then
+- grep_compile=$(cat $buildfile | grep compile-pkg_$flag | cut -d "(" -f 1)
++ grep_compile=$(cat $buildfile | grep -w compile-pkg_$flag | cut -d "(" -f 1)
+  [ -z "$grep_compile" ] && err "Flag $flag not found! Exiting..."
+ else
+- grep_compile=$(cat $buildfile | grep compile-pkg | cut -d "(" -f 1)
++ grep_compile=$(cat $buildfile | grep -w compile-pkg | cut -d "(" -f 1)
+  [ -z "$grep_compile" ] && repack=1
+ fi
+ 
