@@ -16,7 +16,6 @@ eval $command
 [ -z "$CONFDIR" ] && CONFDIR=$DESTDIR
 [ -z "$SYSROOT" ] && SYSROOT=$DESTDIR
 
-touch .patched
 echo "<< pachanh install script"
 echo ">> Summary"
 echo "Destdir=$DESTDIR"
@@ -53,7 +52,7 @@ printf "\n>> Done"
 printf "\n>> Installing pachanh... \n"
 
 cd $workdir/src/bin 
-[ ! -f $workdir/.patched ] && ./fast-patch
+[ ! -f $workdir/.patched ] && ./fast-patch && touch .patched
  
 cd $workdir
 cp -r src/bin .
