@@ -5,7 +5,7 @@
    difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/< //g')
    for files in $difffiles; do 
 -   rm -rvf $sysroot/$files
-+   rm -vf $sysroot/$files
++   rm -vf $sysroot/$files || true
    done
   fi
  
