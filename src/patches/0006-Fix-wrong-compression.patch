@@ -1,0 +1,11 @@
+--- hanhbuild	2021-10-28 10:51:44.126147925 +0700
++++ hanhbuild1	2021-10-28 10:52:16.209257033 +0700
+@@ -183,7 +183,7 @@
+ 
+ ## Compress the package 
+  info "(30%%)_ Compressing package..."
+- tar -cjf $hanhdir/$pkg_tarball *
++ tar -cJf $hanhdir/$pkg_tarball *
+  
+  info "(100%%) Package created: $pkg_tarball" 
+ }

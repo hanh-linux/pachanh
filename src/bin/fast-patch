@@ -1,3 +1,0 @@
-for patch in ../patches/*.patch; do
-patch -Np0 -i $patch
-done
