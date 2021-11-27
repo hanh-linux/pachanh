@@ -348,9 +348,7 @@ file_check
 
 [ -z "$grep_unpack" ] && no_unpack=1 
 
-[ -z "$grep_compile" ] && repack=1
-
-echo $grep_compile $grep_unpack $no_unpack 
+[ -z "$grep_compile" ] && repack=1 
 
 if [ "$no_unpack" == 0 ]; then
  info "Unpacking sources..."
