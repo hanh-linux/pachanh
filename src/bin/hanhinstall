@@ -35,6 +35,7 @@ echo "--remove                                  Remove packages"
 echo "--search                                  Search for installed packages"
 echo "--gen-skel=<path>                         Generate the packages build files"
 echo "--build=<directory>                       Build all available build files inside a directory"
+echo "--snapshot                                Build the system with lastest build files"
 echo "Options"
 echo "--help                                    Print this message"
 echo "--version                                 Print version"
@@ -66,7 +67,9 @@ lib_check(){
    for search_dir in $HANH_LIBDIR; do
     [ -f "$search_dir/$need_lib" ] && found_lib=1
    done
-   [ -z "$found_lib" ] && err "Library $need_lib not found!"
+   [ -z "$found_lib" ] && err "Library $need_lib not found!" 
+   unset found_lib
+   continue
   done
  fi
 
@@ -86,7 +89,7 @@ if [ ! -z "$contain" ]; then
     read confirm
 ##### The lines below will be formatted like this due to compability
 case $confirm in 
-Y|y) hanhinstall --remove $conflict;;
+Y|y) hanhinstall --sysroot=$sysroot --remove $conflict;;
 *) exit 1;
 esac
 ##### End of directory check
@@ -100,7 +103,7 @@ esac
       read confirm
 ###### The lines below will be like this due to compatibility
 case $confirm in 
-Y|y) hanhinstall --remove $link;;
+Y|y) hanhinstall --sysroot=$sysroot --remove $link;;
 *) exit 1;
 esac
      fi
@@ -114,6 +117,7 @@ fi
 
 # Function for downloading database
 sync_data(){
+current=$(pwd)
 ## Get some variables
 all_repo=$(ls -d $mirror_dir/*)
 
@@ -141,6 +145,7 @@ for repo_name in $all_repo; do
 
  done
 done
+cd $current
 
 info "(100%%)"
 }
@@ -160,12 +165,14 @@ else
   source $dbdir/$pkg_build_dir/buildhanh 
   if [ "$check_deps" == 1 ]; then
    for dep in $depends; do 
-    [ ! -d $dbdir/$dep ] && err "Depend $dep not found! Exiting..."
-    [ -d $dbdir/$dep ] && hanhinstall --gen-skel=. $dep 
+    [ ! -d $dbdir/$dep ] && info "Depends $dep is not found. Ignoring..."
+    [ -d $dbdir/$dep ] && hanhinstall --sysroot=$sysroot --gen-skel=. $dep 
    done
   fi
+  continue
  done
 fi
+unset grep_unpack grep_compile grep_pkg # Avoid problem with hanhinstall --snapshot
 info "(100%%)"
 }
 
@@ -207,7 +214,7 @@ for pkg in $package; do
   info "(20%%)_ Filtering old files..."
   difffiles=$(diff $oldfile $newfile | grep "<" | sed 's/< //g')
   for files in $difffiles; do 
-   rm -rvf $sysroot/$files
+   rm -vf $sysroot/$files || true
   done
  fi
 
@@ -220,7 +227,7 @@ for pkg in $package; do
  done
  rm -rf $sysroot/pre-install $TEMP
  info "(100%%)"
-
+ continue
 done
 }
 
@@ -258,23 +265,37 @@ cd $build_dir
 parent_dir=$(pwd)
 info "(5%%)__ Building packages..."
 for build_pkg in *; do
- [ -d "$parent_dir"/"$build_pkg" ] && cd $parent_dir/$build_pkg && hanhbuild --disable-depends
+ [ -d "$parent_dir"/"$build_pkg" ] && cd $parent_dir/$build_pkg && hanhbuild --sysroot=$sysroot --build-deps
 done
 info "(80%%)_ Moving packages to all_packages directory..."
 cd $parent_dir
 mkdir -p all_packages
-mv */*.hanhbuild.tar.gz all_packages/
+mv */*.hanhbuild.tar.* all_packages/
 info "(100%%)"
 }
 
+build_snapshot() {
+current=$(pwd)
+mkdir -p $current/snapshot
+for x in $(ls $sysroot/var/lib/pachanh/system/); do
+ if [ ! -L "$sysroot/var/lib/pachanh/system/$x" ]; then 
+  hanhinstall --sysroot=$sysroot --gen-skel=$current $x && continue
+  cd $current/$x 
+  hanhbuild --sysroot=$sysroot --build-deps 
+ fi
+ cd $current
+done
+mv $current/*/*hanhbuild.tar.* $current/snapshot/
+}
+
 search() {
+[ -z "$package" ] && ls $installed_infodir | tee /dev/null
 for pkg in $package; do
 ### Check if the package is installed
  if [[ -d $installed_infodir/$pkg ]]; then
 ### Check if the specified information file exists
   for file in $files; do
-   [ ! -f $installed_infodir/$pkg/$file ] && err "Specified file not found! Exiting..."
-   [ ! -f $installed_infodir/$pkg/$file ] && err "Specified file not found! Exiting..."
+   [ ! -f $installed_infodir/$pkg/$file ] && err "Specified file not found! Exiting..." 
    info "Printing $file..."
    cat $installed_infodir/$pkg/$file
   done
@@ -284,11 +305,9 @@ for pkg in $package; do
 done
 }
 
-
-printf "<< Executing command... \n"
 # Get some variables
 check_deps=1
-version="1.1"
+version="1.2"
 files="info header filelist"
 
 # Get the executed command. If the command comes with no more option, print the help.
@@ -312,6 +331,7 @@ case $x in
 "--search")		search=1;;
 "--install")		install=1;;
 "--remove")		remove=1;;
+"--snapshot")           snapshot=1;;
 "--version")            echo "$version";exit;;
 "--"*)			printf "\n>>> Unknown options: $x. Ignoring...";;
 *)			package="$package $x";;	
@@ -348,13 +368,13 @@ dbdir="$sysroot/var/lib/pachanh/remote"
 [ "$install" == 1 ] && [ "$remove" == 1 ] && err "--install option cannot be used with --remove option. Exiting..."
 
 if [ "$gen_skel" == 1 ]; then
-[ ! -z "$dir_skel" ] && [ ! -d "$dir_skel" ] && err "Skeleton directory not found! Exiting..."
-[ -z "$dir_skel" ] && dir_skel=.
+ [ ! -z "$dir_skel" ] && [ ! -d "$dir_skel" ] && err "Skeleton directory not found! Exiting..."
+ [ -z "$dir_skel" ] && dir_skel=.
 fi
 
 if [ "$all_build" == 1 ]; then
-[ ! -z "$build_dir" ] && [ ! -d "$build_dir" ] && err "Build directory not found! Exiting..."
-[ -z "$build_dir" ] && err "Enter a build directory, please! Exiting..."
+ [ ! -z "$build_dir" ] && [ ! -d "$build_dir" ] && err "Build directory not found! Exiting..."
+ [ -z "$build_dir" ] && err "Enter a build directory, please! Exiting..."
 fi
 
 # Execute the functions above
@@ -369,3 +389,5 @@ fi
 [ "$all_build" == 1 ] && build_all
 
 [ "$search" == 1 ] && search
+
+[ "$snapshot" == 1 ] && sync_data && build_snapshot

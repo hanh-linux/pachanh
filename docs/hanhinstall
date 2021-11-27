@@ -8,6 +8,7 @@ Available actions:
 --search                                  Search for installed packages
 --gen-skel=<path>                         Generate the packages build files
 --build=<directory>                       Build all available build files inside a directory
+--snapshot                                Build all packages with latest build files
 Available options:
 --help                                    Print this message
 --version                                 Print version

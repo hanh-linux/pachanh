@@ -14,18 +14,21 @@ printf "\n"
 help() {
 echo "hanhbuild - Hanh Linux packages builder"
 echo "Usage: hanhbuild [options]"
-echo "Options"
+echo "General options"
 echo "--help                                    Print this message"
 echo "--config=<path to config>                 Use a alternative config"
 echo "--sysroot=<path to dir>                   Use a alternative system root"
 echo "--buildfile=<path to buildfile>           Use a alternative build file"
 echo "--downloader=<command>                    Use command to install"
+echo "Build options"
 echo "--flag=<flag>                             Use build flag (only with compiling)"
 echo "--clean                                   Clean all current work and package directory"
 echo "--no-unpack                               Use current work directory"
 echo "--repack                                  Make a package using current work directory"
 echo "--no-archive                              Do not create tarball archive"
 echo "--no-download                             Disable download sources"
+echo "--build-deps                              Build runtime depends"
+echo "--only-deps                               Only build and install package dependencies"
 echo "--disable-depends                         Skip dependencies check"
 echo "For any questions, please consider asking on GitHub: https://github.com/hanh-linux/pachanh"
 exit
@@ -49,13 +52,43 @@ printf "\n>>> $1" && exit 1
 # Function for dependencies checking
 depends_check() {
 info "Checking dependencies.."
+mkdir -p $hanhdir/deps
 if [ ! -z "$depends" ]; then
  for dep in $depends; do
   if [ ! -d $sysroot/var/lib/pachanh/system/$dep ]; then
-   err "$dep not found! Please install and compile it"
+   [ "$depbuild" == 0 ] && err "$dep not found! Please install and compile it"
+    hanhinstall --sysroot=$sysroot --gen-skel="$hanhdir/deps/" $dep && continue
+    cd $hanhdir/deps/$dep
+    hanhbuild --sysroot=$sysroot --build-deps
+    hanhinstall --sysroot=$sysroot --install $dep*.hanhbuild.tar.xz && continue
+  fi
+ done
+ cd $hanhdir
+ [ "$deponly" == 1 ] && info "Dependencies installed" && exit 
+fi
+info "Finished dependencies check"
+}
+
+# Function for checking make dependencies
+makedeps_check() {
+info "Checking make dependencies.."
+if [ ! -z "$makedeps" ]; then
+ for dep in $makedeps; do
+  if [ ! -d $sysroot/var/lib/pachanh/system/$dep ]; then
+   lost_deps="$lost_deps $dep"
+   printf "\nLost deps: $lost_deps"
+  fi
+  if [ ! -z "$lost_deps" ]; then
+   info "Missing make dependencies: $lost_deps. Would you like to continue? [Y/N]" 
+   read choice
+   case $choice in 
+	  Y|y) continue;;
+	  *  ) err "Missing make dependencies: $lost_deps";;
+   esac
   fi
  done
 fi
+info "Finished make dependencies check"
 }
 
 # Function for working with `contain` line
@@ -79,6 +112,7 @@ if [ ! -z "$build_bin" ]; then
    [ -f $search_dir/$binary ] && final_binary=1 
   done
  [ -z "$final_binary" ] && err "Binary $binary not found!"
+ unset final_binary
  done
 
  info "Finished binaries check"
@@ -95,6 +129,7 @@ if [ ! -z "$lib" ]; then
    [ -f "$search_dir/$library" ] && final_lib=1
   done
   [ -z "$final_lib" ] && err "Library $library not found!"
+  unset final_lib
  done
 
  info "Finished libraries check"
@@ -181,7 +216,7 @@ info "Finishing package..."
 
 ## Compress the package 
  info "(30%%)_ Compressing package..."
- tar -cjf $hanhdir/$pkg_tarball *
+ tar -cJf $hanhdir/$pkg_tarball *
  
  info "(100%%) Package created: $pkg_tarball" 
 }
@@ -201,10 +236,14 @@ no_unpack=0
 repack=0
 download=1
 check_deps=1
+depbuild=0
 version="1.1"
 pack=1
+force=0
+grep_pkg=
+grep_compile=
+grep_unpack=
 
-printf "<< Executing command...\n"
 # Get the command line 
 command="$*"
 
@@ -213,6 +252,9 @@ for x in $command; do
 
 case $x in
 "--help") help; exit;;
+"--build-deps") depbuild=1;;
+"--only-deps") deponly=1;depbuild=1;;
+"--force") force=1;;
 "--config"=*) config=$(echo "$x" | cut -d "=" -f 2);;
 "--buildfile"=*) buildfile=$(echo "$x" | cut -d "=" -f 2);;
 "--no-download") download=0;;
@@ -241,8 +283,7 @@ if [ ! -z "$override_sysroot" ]; then
  [ ! -d "$override_sysroot" ] && err "$override_sysroot not found! Exiting..."
  sysroot=$override_sysroot
 fi	
-[ -z "$sysroot" ] && sysroot="SYSROOT/"
-
+[ -z "$sysroot" ] && sysroot="SYSROOT"
 
 # Check if the download command is available.
 [ ! -z "$override_downloader" ] && downloader="$override_downloader"
@@ -258,24 +299,29 @@ if [ ! -f $buildfile ]; then
  err "Build file not found!"
 fi
 
+[ -f "$hanhdir"/.buildinfo ] && source $hanhdir/.buildinfo
 source $buildfile
+[ -z "$name" ] && err "Package name is not specified"
+[ -z "" ]
+[ ! -z "$flags" ] && echo "flag=\"$flag\"" >> $hanhdir/.buildinfo
 
 # By default, check for dependencies. If --disable-depends is enabled, skip this step. 
 if [ "$check_deps" == 1 ]; then 
 depends_check
+makedeps_check
 bin_check
 lib_check
 printf "\n"
 fi
 
 # Check for available functions
-grep_unpack=$(cat $buildfile | grep unpack-pkg | cut -d "(" -f 1)
+grep_unpack=$(cat $buildfile | grep -w unpack-pkg | cut -d "(" -f 1)
 
 if [ ! -z "$flag" ]; then
- grep_compile=$(cat $buildfile | grep compile-pkg_$flag | cut -d "(" -f 1)
+ grep_compile=$(cat $buildfile | grep -w compile-pkg_$flag | cut -d "(" -f 1)
  [ -z "$grep_compile" ] && err "Flag $flag not found! Exiting..."
 else
- grep_compile=$(cat $buildfile | grep compile-pkg | cut -d "(" -f 1)
+ grep_compile=$(cat $buildfile | grep -w compile-pkg | cut -d "(" -f 1)
  [ -z "$grep_compile" ] && repack=1
 fi
 
@@ -285,10 +331,12 @@ grep_pkg=$(cat $buildfile | grep make-pkg | cut -d "(" -f 1)
 
 [ "$show_flags" == 1 ] && info "Available flags are: $build_flag"  && exit  
 
+[ "$force" == 0 ] && [ -f "$hanhdir/.done" ] && info "Package built" && exit
+
 if [ "$clean" == 1 ]; then
  info "Cleaning necessary directories..."
  no_unpack=0
- rm -rf $pkgdir $workdir
+ rm -rf $pkgdir $workdir $hanhdir/.buildinfo
 fi
 
 info "Creating necessary directories if needed..."
@@ -301,6 +349,8 @@ file_check
 [ -z "$grep_unpack" ] && no_unpack=1 
 
 [ -z "$grep_compile" ] && repack=1
+
+echo $grep_compile $grep_unpack $no_unpack 
 
 if [ "$no_unpack" == 0 ]; then
  info "Unpacking sources..."
@@ -320,3 +370,6 @@ if [ "$pack" == 1 ]; then
   archive_pkg
  done
 fi
+
+unset grep_unpack grep_compile grep_pkg
+echo "Package created at $(date)" >> $hanhdir/.done

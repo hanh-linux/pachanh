@@ -3,34 +3,25 @@ hanhbuild - pachanh package builder
 ============================================================
 Usage: hanhbuild [options] 
 Available options: 
---help
-     Print help message
---config=<path to config>
-     Use a alternative config instead of /etc/hanhbuild.conf
---buildfile=<path to buildfile>
-     Use a alternative build file instead of buildhanh
---downloader=<command>
-     Use a command to fetch remote files
---flag=<flag>
-     Use a build flag (for packages require compiling)
---sysroot=<path to directory>
-     Use a alternative system root
---show-flags
-     Check for available build flags
---clean
-     Clean current work and package directories
---no-unpack 
-     Use existing work directory
---repack
-     Use the existing work directory to create the package
---no-archive
-     Do not create a archive package after build 
---no-download
-     Disable downloading sources
---disable-depends 
-     Skip dependencies check
+--help                                    Print this message
+--config=<path to config>                 Use a alternative config
+--sysroot=<path to dir>                   Use a alternative system root
+--buildfile=<path to buildfile>           Use a alternative build file
+--downloader=<command>                    Use command to install
+Build options
+--flag=<flag>                             Use build flag (only with compiling)
+--clean                                   Clean all current work and package directory
+--no-unpack                               Use current work directory
+--repack                                  Make a package using current work directory
+--no-archive                              Do not create tarball archive
+--no-download                             Disable download sources
+--build-deps                              Build runtime depends
+--disable-depends                         Skip dependencies check
 
-The binary will check the dependencies, required binaries and libraries. Then it will fetch the remote files, run the specified functions in the build file and create a package archive from the $pkgdir
+
+The binary will check the dependencies, required binaries and libraries
+or make dependencies. Then it will fetch the remote files, run the 
+specified functions in the build file and create a package archive from the $pkgdir
 =============================================================
 /etc/hanhbuild.conf
 Available variables: 

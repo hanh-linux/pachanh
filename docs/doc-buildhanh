@@ -10,6 +10,7 @@ ver=version
 desc="Example package description"
 home="https://www.example.org/"
 depends="depend1 depend2 depend3"
+makedeps="depend4 depend5 depend6"
 build_bin="binary1 binary2 binary3"
 lib="lib1.so lib2.a lib3.o"
 sources="https://www.example.org/$name-$ver.tar.gz"
@@ -44,6 +45,7 @@ ver                              Package version
 desc                             Package description
 home                             Package homepage
 depends                          Package runtime dependencies
+makedeps                         Package make dependencies
 build_bin                        Binaries for building package
 lib                              Package runtime libraries
 sources                          Remote source files
