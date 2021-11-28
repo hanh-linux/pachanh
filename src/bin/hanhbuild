@@ -302,8 +302,7 @@ fi
 [ -f "$hanhdir"/.buildinfo ] && source $hanhdir/.buildinfo
 source $buildfile
 [ -z "$name" ] && err "Package name is not specified"
-[ -z "" ]
-[ ! -z "$flags" ] && echo "flag=\"$flag\"" >> $hanhdir/.buildinfo
+[ ! -z "$flag" ] && echo "flag=\"$flag\"" >> $hanhdir/.buildinfo
 
 # By default, check for dependencies. If --disable-depends is enabled, skip this step. 
 if [ "$check_deps" == 1 ]; then 
