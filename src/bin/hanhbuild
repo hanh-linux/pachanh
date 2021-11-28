@@ -302,7 +302,6 @@ fi
 [ -f "$hanhdir"/.buildinfo ] && source $hanhdir/.buildinfo
 source $buildfile
 [ -z "$name" ] && err "Package name is not specified"
-[ ! -z "$flag" ] && echo "flag=\"$flag\"" >> $hanhdir/.buildinfo
 
 # By default, check for dependencies. If --disable-depends is enabled, skip this step. 
 if [ "$check_deps" == 1 ]; then 
@@ -337,6 +336,8 @@ if [ "$clean" == 1 ]; then
  no_unpack=0
  rm -rf $pkgdir $workdir $hanhdir/.buildinfo
 fi
+
+[ ! -f $hanhdir/.buildinfo ] && [ ! -z "$flag" ] && echo "flag=\"$flag\"" > $hanhdir/.buildinfo
 
 info "Creating necessary directories if needed..."
 mkdir -p $pkgdir $workdir
