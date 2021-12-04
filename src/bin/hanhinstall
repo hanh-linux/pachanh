@@ -281,7 +281,11 @@ for x in $(ls $sysroot/var/lib/pachanh/system/); do
  if [ ! -L "$sysroot/var/lib/pachanh/system/$x" ]; then 
   hanhinstall --sysroot=$sysroot --gen-skel=$current $x && continue
   cd $current/$x 
+  if [ ! -f "NOT_READY" ]; then
   hanhbuild --sysroot=$sysroot --build-deps 
+  else
+  info "Skipping since NOT_READY is presented!"
+  fi
  fi
  cd $current
 done

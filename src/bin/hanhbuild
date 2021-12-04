@@ -73,20 +73,21 @@ info "Finished dependencies check"
 makedeps_check() {
 info "Checking make dependencies.."
 if [ ! -z "$makedeps" ]; then
- for dep in $makedeps; do
+ 
+for dep in $makedeps; do
   if [ ! -d $sysroot/var/lib/pachanh/system/$dep ]; then
    lost_deps="$lost_deps $dep"
-   printf "\nLost deps: $lost_deps"
-  fi
-  if [ ! -z "$lost_deps" ]; then
-   info "Missing make dependencies: $lost_deps. Would you like to continue? [Y/N]" 
-   read choice
-   case $choice in 
-	  Y|y) continue;;
-	  *  ) err "Missing make dependencies: $lost_deps";;
-   esac
   fi
  done
+
+ if [ ! -z "$lost_deps" ]; then
+  info "Missing make dependencies: $lost_deps. Would you like to continue? [Y/N]" 
+  read choice
+  case $choice in 
+	  Y|y) continue;;
+	  *  ) err "Missing make dependencies: $lost_deps";;
+  esac
+ fi
 fi
 info "Finished make dependencies check"
 }
