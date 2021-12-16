@@ -1,4 +1,4 @@
-<img src="https://avatars.githubusercontent.com/u/92290272?s=150&v=4" align=right href="https://hanh-linux.github.io/">
+<img src="https://raw.githubusercontent.com/hanh-linux/hanh-linux.github.io/main/assets/img/logo.svg" width="200" align=right href="https://hanh-linux.github.io/"/>
 
 # pachanh
 Hanh Linux package manager. A package manager is written in shell(`bash`).
