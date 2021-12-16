@@ -1,9 +1,11 @@
+#!/bin/bash
+
 workdir=$(pwd)
 
 help() {
 echo "Available options:"
 echo "DESTDIR               Install to directory"
-echo "PREFIX                Install to prefix"
+echo "PREFIX                Install to prefix(default:'/usr/local')"
 echo "CONFDIR               Useful for finding configuration file"
 echo "SYSROOT               Useful for define installed root directory"
 echo "HELP                  Print this message"
@@ -15,6 +17,10 @@ eval $command
 [ "$HELP" == 1 ] && help && exit
 [ -z "$CONFDIR" ] && CONFDIR=$DESTDIR
 [ -z "$SYSROOT" ] && SYSROOT=$DESTDIR
+
+# "You should not install them into /usr/bin because future distribution upgrades may modify or delete them without warning."
+# https://unix.stackexchange.com/questions/8656/usr-bin-vs-usr-local-bin-on-linux
+PREFIX="/usr/local"
 
 echo "<< pachanh install script"
 echo ">> Summary"
@@ -30,25 +36,25 @@ recommended_command="wget"
 
 printf "\n"
 for x in $needed_command; do
-printf "\nChecking if necessary command $x is found... "
+printf "\nChecking if '$x' is found... "
 if ! command -v $x &> /dev/null; then
- printf "not found"
- printf "\n>>> Command $x is not found! Aborting...\n"
+ printf ">> ERROR: Not found!"
+ printf "\n>>> Cannot find '$x'! Aborting...\n"
  exit 1
 else
- printf "found"
+ printf ">> Found!"
 fi
 done
 for x in $recommended_command; do
-printf "\nChecking if recommended command $x is found... "
+printf "\nChecking if recommended command '$x' is found... "
 if ! command -v $x &> /dev/null; then
-printf "not found"
-printf "\n>> Command $x is recommended to be installed on your system"
+printf ">> ERROR: Not found!"
+printf "\n>> We recommended installing '$x' on your system"
 else
-printf "found"
+printf ">> ERROR: Not found!"
 fi
 done
-printf "\n>> Done"
+printf "\n>> Done!"
 printf "\n>> Installing pachanh... \n"
 
 cd $workdir/src/bin 
@@ -64,7 +70,7 @@ sed "s|SYSROOT|$SYSROOT|g" -i bin/hanhinstall bin/hanhbuild
 
 install -dvm755 $DESTDIR/var/lib/pachanh/remote
 install -dvm755 $DESTDIR/var/lib/pachanh/system
-install -dvm755 $DESTDIR/$PREFIX/etc/hanhmirror.d/
+install -dvm755 $DESTDIR/etc/hanhmirror.d/
 
 install -Dvm755 bin/hanhinstall $DESTDIR/$PREFIX/bin/hanhinstall
 install -Dvm755 bin/hanhbuild $DESTDIR/$PREFIX/bin/hanhbuild
