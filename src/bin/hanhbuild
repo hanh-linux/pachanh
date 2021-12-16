@@ -16,7 +16,7 @@ echo "hanhbuild - Hanh Linux packages builder"
 echo "Usage: hanhbuild [options]"
 echo "General options"
 echo "--help                                    Print this message"
-echo "--config=<path to config>                 Use a alternative config"
+echo "--config=<path to config file>            Use a alternative config file"
 echo "--sysroot=<path to dir>                   Use a alternative system root"
 echo "--buildfile=<path to buildfile>           Use a alternative build file"
 echo "--downloader=<command>                    Use command to install"
@@ -371,4 +371,4 @@ if [ "$pack" == 1 ]; then
 fi
 
 unset grep_unpack grep_compile grep_pkg
-echo "Package created at $(date)" >> $hanhdir/.done
+echo "Package created at '$(LC_ALL=C date)'" >> $hanhdir/.done
