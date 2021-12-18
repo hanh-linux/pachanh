@@ -1,28 +1,35 @@
 workdir=$(pwd)
 
 help() {
-echo "Available options:"
-echo "DESTDIR               Install to directory"
-echo "PREFIX                Install to prefix"
-echo "CONFDIR               Useful for finding configuration file"
-echo "SYSROOT               Useful for define installed root directory"
-echo "HELP                  Print this message"
+cat << EOF
+----------------------------------------------------------------------
+    options    |      description      |     value     |    default   |
+----------------------------------------------------------------------
+ PREFIX        | Install to prefix     |     dir       | /usr/local   |
+ DESTDIR       | Install to directory  |     dir       | /            |
+ SYSROOT       | System root           |     dir       | /            |
+ CONFDIR       | .conf files directory |     dir       | \$SYSROOT/etc |
+ HELP          | Print help            |               |              |
+-----------------------------------------------------------------------
+EOF
 }
 
 command="$*"
 eval $command
 
 [ "$HELP" == 1 ] && help && exit
-[ -z "$CONFDIR" ] && CONFDIR=$DESTDIR
-[ -z "$SYSROOT" ] && SYSROOT=$DESTDIR
+[ -z "$PREFIX"  ] && PREFIX=/usr/local
+[ -z "$SYSROOT" ] && SYSROOT=/
+[ -z "$CONFDIR" ] && CONFDIR=$SYSROOT/etc
 
-echo "<< pachanh install script"
 echo ">> Summary"
-echo "Destdir=$DESTDIR"
-echo "Prefix=$PREFIX"
-echo "System root=$SYSROOT"
-echo "Configuration directory=$CONFDIR"
-echo -ne "\n"
+cat << EOF
+   Variable   |    Value
+ PREFIX       | $PREFIX
+ DESTDIR      | $DESTDIR
+ SYSROOT      | $SYSROOT
+ CONFDIR      | $CONFDIR
+EOF
 
 echo ">> Checking requirements..."
 needed_command="install sed rm printf exit echo source case for if tee find tar gzip mkdir eval cat [ diff sh readlink ln bash patch"
@@ -62,15 +69,15 @@ rm -rf bin/fast-patch
 sed "s|CONFDIR|$CONFDIR|g" -i bin/hanhinstall bin/hanhbuild
 sed "s|SYSROOT|$SYSROOT|g" -i bin/hanhinstall bin/hanhbuild
 
-install -dvm755 $DESTDIR/var/lib/pachanh/remote
-install -dvm755 $DESTDIR/var/lib/pachanh/system
-install -dvm755 $DESTDIR/$PREFIX/etc/hanhmirror.d/
+install -dvm755 $DESTDIR/$SYSROOT/var/lib/pachanh/remote
+install -dvm755 $DESTDIR/$SYSROOT/var/lib/pachanh/system
+install -dvm755 $DESTDIR/$CONFDIR/hanhmirror.d/
 
 install -Dvm755 bin/hanhinstall $DESTDIR/$PREFIX/bin/hanhinstall
 install -Dvm755 bin/hanhbuild $DESTDIR/$PREFIX/bin/hanhbuild
 
-install -Dvm644 etc/hanh.conf $DESTDIR/etc/hanh.conf
-install -Dvm644 etc/hanhbuild.conf $DESTDIR/etc/hanhbuild.conf
-install -Dvm644 etc/hanhmirror.d/core $DESTDIR/etc/hanhmirror.d/core
+install -Dvm644 etc/hanh.conf $DESTDIR/$CONFDIR/hanh.conf
+install -Dvm644 etc/hanhbuild.conf $DESTDIR/$CONFDIR/hanhbuild.conf
+install -Dvm644 etc/hanhmirror.d/core $DESTDIR/$CONFDIR/hanhmirror.d/core
 
 
