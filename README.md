@@ -1,3 +1,5 @@
+> This repo is deprecated since pachanh has been rewritten in POSIX C and sh-compatible
+
 # pachanh
 Hanh Linux package manager. A package manager is written in shell.
 
